@@ -17,7 +17,7 @@ import { ContainerInspector } from '../components/ContainerInspector'
 import { CatalogPanel } from '../components/CatalogPanel'
 import { TypeIcon } from '../components/TypeIcon'
 import { RoomForm } from '../components/RoomForm'
-import { Bar, Confirm, Empty } from '../components/ui'
+import { Bar, Confirm, Empty, Select } from '../components/ui'
 import { areaM2, cx, fmtLen, fmtNum } from '../lib/utils'
 import { usedFloorArea } from '../lib/geometry'
 
@@ -40,7 +40,7 @@ function RoomsPanel({ onClose, onEdit, onDelete, onAddRoom }: {
   const units = useStore((s) => s.settings.units)
 
   return (
-    <div className="float pop-in flex w-[270px] flex-col overflow-hidden" style={{ maxHeight: '100%' }}>
+    <div className="float pop-in flex w-[min(270px,calc(100vw-7rem))] flex-col overflow-hidden" style={{ maxHeight: '100%' }}>
       <header className="flex items-center justify-between border-b hairline px-3 py-2.5">
         <p className="text-[13px] font-semibold">Sites &amp; rooms</p>
         <button className="btn btn-ghost btn-sm" onClick={onClose} title="Close">✕</button>
@@ -116,7 +116,7 @@ function ObjectsPanel({ roomId, onClose }: { roomId: string; onClose: () => void
   }, [containers, roomId, q])
 
   return (
-    <div className="float pop-in flex w-[270px] flex-col overflow-hidden" style={{ maxHeight: '100%' }}>
+    <div className="float pop-in flex w-[min(270px,calc(100vw-7rem))] flex-col overflow-hidden" style={{ maxHeight: '100%' }}>
       <header className="flex items-center justify-between border-b hairline px-3 py-2.5">
         <p className="text-[13px] font-semibold">Objects <span className="muted font-normal">({list.length})</span></p>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
@@ -173,6 +173,7 @@ export function RoomsView() {
   const activeRoomId = useStore((s) => s.activeRoomId)
   const setActiveRoom = useStore((s) => s.setActiveRoom)
   const selectedContainerId = useStore((s) => s.selectedContainerId)
+  const revealedContainerId = useStore((s) => s.revealedContainerId)
   const selectContainer = useStore((s) => s.selectContainer)
   const setInspectorTab = useStore((s) => s.setInspectorTab)
   const cameraPreset = useStore((s) => s.cameraPreset)
@@ -280,32 +281,34 @@ export function RoomsView() {
   return (
     <div className="relative flex h-full flex-col" style={{ background: 'var(--bg)' }}>
       {/* ------------------------------------------------------------ topbar */}
-      <header className="flex h-[54px] shrink-0 items-center gap-2 border-b hairline px-3" style={{ background: 'var(--panel)' }}>
+      <header className="flex h-[54px] min-w-0 shrink-0 items-center gap-1.5 border-b hairline px-2 sm:gap-2 sm:px-3" style={{ background: 'var(--panel)' }}>
         {/* Site → room, so it is always clear which location you are editing. */}
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Building2 size={15} className="muted" />
-          <select
-            className="select w-[140px] font-medium lg:w-[168px]"
+        <div className="flex min-w-0 shrink items-center gap-1.5">
+          <Building2 size={15} className="hidden shrink-0 muted sm:block" />
+          <Select
+            className="w-[120px] font-medium sm:w-[150px] lg:w-[176px]"
             value={activeSiteId ?? ''}
-            onChange={(e) => setActiveSite(e.target.value)}
+            onChange={setActiveSite}
+            options={sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }))}
             title="Site / location"
-          >
-            {sites.map((s) => <option key={s.id} value={s.id}>{s.code} — {s.name}</option>)}
-          </select>
+            ariaLabel="Site"
+          />
         </div>
 
         <span className="shrink-0 muted">/</span>
 
-        <div className="flex shrink-0 items-center gap-1.5">
-          <DoorOpen size={15} className="muted" />
-          <select
-            className="select w-[140px] font-medium lg:w-[168px]"
+        {/* Room names run longer than site names ("RM-01 — Parts & Tool Room"),
+            so this one gets the extra width. */}
+        <div className="flex min-w-0 shrink items-center gap-1.5">
+          <DoorOpen size={15} className="hidden shrink-0 muted sm:block" />
+          <Select
+            className="w-[150px] font-medium sm:w-[200px] lg:w-[240px]"
             value={room?.id ?? ''}
-            onChange={(e) => setActiveRoom(e.target.value)}
+            onChange={setActiveRoom}
+            options={siteRooms.map((r) => ({ value: r.id, label: `${r.code} — ${r.name}` }))}
             title="Room"
-          >
-            {siteRooms.map((r) => <option key={r.id} value={r.id}>{r.code} — {r.name}</option>)}
-          </select>
+            ariaLabel="Room"
+          />
         </div>
 
         <button className="btn btn-sm btn-icon shrink-0" onClick={() => { setEditRoom(room); setRoomFormOpen(true) }} title="Edit this room's size and colours">
@@ -315,24 +318,31 @@ export function RoomsView() {
           <Plus size={14} />
         </button>
 
+        {/* Pushes the stats and the panel toggle to the right. A spacer rather
+            than `ml-auto` on both: two auto margins split the free space between
+            them, which left the toggle floating in the middle of the bar. */}
+        <div className="min-w-0 flex-1" />
+
         {stats && (
-          <span className="ml-auto hidden shrink-0 items-center gap-3 text-[11.5px] muted xl:flex">
+          <span className="hidden shrink-0 items-center gap-3 text-[11.5px] muted xl:flex">
             <span>{roomContainers.length} objects</span>
             <span>{roomItems.length} lines</span>
             <span>{fmtNum(stats.area, 1)} m² · {Math.round(stats.floor * 100)}% used</span>
           </span>
         )}
         <button
-          className={cx('btn btn-sm btn-icon ml-auto shrink-0 xl:ml-0', inspectorOpen && 'btn-active')}
+          className={cx('btn btn-sm btn-icon shrink-0', inspectorOpen && 'btn-active')}
           onClick={() => setInspectorOpen(!inspectorOpen)}
-          title="Toggle properties panel"
+          title={inspectorOpen ? 'Hide properties panel' : 'Show properties panel'}
+          aria-pressed={inspectorOpen}
         >
           <PanelRight size={14} />
         </button>
       </header>
 
       {/* ---------------------------------------------------------- workspace */}
-      <div className="flex min-h-0 flex-1">
+      {/* `relative` anchors the inspector drawer and its scrim below `lg`. */}
+      <div className="relative flex min-h-0 flex-1">
         <div className="relative min-h-0 flex-1">
         {room && viewMode !== 'webgl' && (
           <PlanScene
@@ -341,6 +351,7 @@ export function RoomsView() {
             items={roomItems}
             settings={settings}
             selectedId={selectedContainerId}
+            revealedId={revealedContainerId}
             onSelect={selectContainer}
             onOpenItems={(id) => { selectContainer(id); setInspectorTab('items'); setInspectorOpen(true) }}
             preset={cameraPreset}
@@ -356,6 +367,7 @@ export function RoomsView() {
             items={roomItems}
             settings={settings}
             selectedId={selectedContainerId}
+            revealedId={revealedContainerId}
             onSelect={selectContainer}
             onOpenItems={(id) => { selectContainer(id); setInspectorTab('items'); setInspectorOpen(true) }}
             preset={cameraPreset}
@@ -367,10 +379,18 @@ export function RoomsView() {
           </Suspense>
         )}
 
-        {/* tool rail over the canvas */}
+        {/*
+          Tool rail over the canvas.
+
+          `pointer-events-auto` belongs on the floating cards themselves, never
+          on the columns holding them. A column stretches the full height of the
+          viewport, so putting it there turned a transparent strip down each
+          edge of the canvas into a click sink — objects underneath could not be
+          selected or dragged there.
+        */}
         <div className="pointer-events-none absolute inset-0 flex">
-          <div className="pointer-events-auto flex flex-col gap-1.5 p-3">
-            <div className="float flex flex-col gap-1 p-1.5">
+          <div className="flex flex-col gap-1.5 p-2 sm:p-3">
+            <div className="float pointer-events-auto flex flex-col gap-1 p-1.5">
               <button className="rail-btn" data-active={leftPanel === 'rooms'} onClick={() => toggleLeftPanel('rooms')} title="Sites & rooms"><Home size={17} /></button>
               <button className="rail-btn" data-active={leftPanel === 'catalog'} onClick={() => toggleLeftPanel('catalog')} title="Add furniture"><Sofa size={17} /></button>
               <button className="rail-btn" data-active={leftPanel === 'objects'} onClick={() => toggleLeftPanel('objects')} title="Objects in room"><LayoutList size={17} /></button>
@@ -378,7 +398,7 @@ export function RoomsView() {
           </div>
 
           {/* Panels stop short of the bottom so they never run into the hint strip. */}
-          <div className="pointer-events-auto min-h-0 py-3 pr-3" style={{ maxHeight: 'calc(100% - 56px)' }}>
+          <div className="pointer-events-auto min-h-0 py-2 pr-2 sm:py-3 sm:pr-3" style={{ maxHeight: 'calc(100% - 56px)' }}>
             {leftPanel === 'rooms' && (
               <RoomsPanel
                 onClose={() => toggleLeftPanel('rooms')}
@@ -394,8 +414,8 @@ export function RoomsView() {
           <div className="flex-1" />
 
           {/* right-hand viewport controls */}
-          <div className="pointer-events-auto flex flex-col items-end gap-1.5 p-3">
-            <div className="float flex flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-col items-end gap-1.5 overflow-y-auto p-2 sm:p-3">
+            <div className="float pointer-events-auto flex flex-col overflow-hidden">
               {([
                 { m: 'plan' as const, label: '2D', title: 'Top-down floor plan — true shape, no heights' },
                 { m: 'webgl' as const, label: '3D', title: 'WebGL scene — real perspective camera, so boxes read as solid boxes' },
@@ -412,7 +432,7 @@ export function RoomsView() {
               ))}
             </div>
 
-            <div className="float flex flex-col gap-1 p-1.5">
+            <div className="float pointer-events-auto flex flex-col gap-1 p-1.5">
               <button className="rail-btn h-8 w-8" onClick={() => setZoomCmd((c) => ({ n: c.n + 1, dir: 1 }))} title="Zoom in"><Plus size={16} /></button>
               <button className="rail-btn h-8 w-8" onClick={() => setZoomCmd((c) => ({ n: c.n + 1, dir: -1 }))} title="Zoom out"><Minus size={16} /></button>
               <button className="rail-btn h-8 w-8" onClick={() => setFitTick((t) => t + 1)} title="Fit room to view"><Maximize2 size={15} /></button>
@@ -420,7 +440,7 @@ export function RoomsView() {
 
             {/* Scene toggles, moved off the top bar so the header only carries
                 the site → room breadcrumb. */}
-            <div className="float flex flex-col gap-1 p-1.5">
+            <div className="float pointer-events-auto flex flex-col gap-1 p-1.5">
               <button className="rail-btn h-8 w-8" data-active={settings.snapEnabled} onClick={() => updateSettings({ snapEnabled: !settings.snapEnabled })} title="Snap to grid"><Magnet size={15} /></button>
               <button className="rail-btn h-8 w-8" data-active={settings.collisionEnabled} onClick={() => updateSettings({ collisionEnabled: !settings.collisionEnabled })} title="Collision detection"><ShieldAlert size={15} /></button>
               <button className="rail-btn h-8 w-8" data-active={settings.showGrid} onClick={() => updateSettings({ showGrid: !settings.showGrid })} title="Floor grid"><Grid3x3 size={15} /></button>
@@ -448,7 +468,7 @@ export function RoomsView() {
             <div className="flex-1" />
 
             {viewMode !== 'plan' && (
-              <div className="float flex gap-1 p-1.5">
+              <div className="float pointer-events-auto flex gap-1 p-1.5">
                 {CAMERA_PRESETS.map((p, i) => (
                   <button
                     key={p.label}
@@ -480,26 +500,57 @@ export function RoomsView() {
         </div>
 
         {/* ------------------------------------------------------- inspector */}
-        {/* Docked rather than floated: as an overlay it sat on top of the 2D/3D
-            and zoom controls at the same corner. As a column the canvas simply
-            gives up the width and nothing can collide. */}
+        {/*
+          A docked column from `lg` up: the canvas simply gives up the width and
+          nothing can collide. Below that a 320 px column would leave almost no
+          canvas, so it becomes an overlay drawer with a dismissable scrim.
+        */}
+        {inspectorOpen && (
+          <div
+            className="absolute inset-0 z-30 bg-black/30 lg:hidden"
+            onClick={() => setInspectorOpen(false)}
+            aria-hidden
+          />
+        )}
         {inspectorOpen && (
           <aside
-            className="flex w-[320px] shrink-0 flex-col overflow-hidden border-l hairline"
+            className="absolute inset-y-0 right-0 z-40 flex w-[min(340px,100%)] shrink-0 flex-col overflow-hidden border-l hairline shadow-2xl lg:static lg:z-auto lg:w-[320px] lg:shadow-none"
             style={{ background: 'var(--panel)' }}
           >
-            {selected ? (
-              <ContainerInspector container={selected} />
-            ) : (
-              <div className="p-4 text-center">
-                <p className="text-[12.5px] font-medium">Nothing selected</p>
-                <p className="mt-1 text-[11.5px] muted">Click an object in the room to edit its size, position and contents.</p>
-                <button className="btn btn-primary mt-3 w-full" onClick={() => useStore.getState().setLeftPanel('catalog')}>
-                  <Plus size={13} /> Add an object
-                </button>
-              </div>
-            )}
+            {/* Closing from inside matters on the drawer, where the header
+                button can be a long reach away on a phone. */}
+            <div className="flex shrink-0 items-center justify-between border-b hairline px-3 py-2 lg:hidden">
+              <p className="text-[12px] font-semibold">Properties</p>
+              <button className="btn btn-ghost btn-sm" onClick={() => setInspectorOpen(false)} aria-label="Close properties">✕</button>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              {selected ? (
+                <ContainerInspector container={selected} />
+              ) : (
+                <div className="p-4 text-center">
+                  <p className="text-[12.5px] font-medium">Nothing selected</p>
+                  <p className="mt-1 text-[11.5px] muted">Click an object in the room to edit its size, position and contents.</p>
+                  <button className="btn btn-primary mt-3 w-full" onClick={() => useStore.getState().setLeftPanel('catalog')}>
+                    <Plus size={13} /> Add an object
+                  </button>
+                </div>
+              )}
+            </div>
           </aside>
+        )}
+
+        {/* Second way back in. The header toggle is a 28 px target in the far
+            corner; this tab is pinned to the edge the panel came from, so the
+            panel is never one unlucky click away from being unreachable. */}
+        {!inspectorOpen && (
+          <button
+            className="absolute right-0 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1 rounded-l-xl border border-r-0 hairline px-1.5 py-3 text-[11px] muted shadow-md"
+            style={{ background: 'var(--panel)' }}
+            onClick={() => setInspectorOpen(true)}
+            title="Show properties panel"
+          >
+            <PanelRight size={14} />
+          </button>
         )}
       </div>
 

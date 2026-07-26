@@ -36,6 +36,8 @@ interface UIState {
   activeSiteId: ID | null
   activeRoomId: ID | null
   selectedContainerId: ID | null
+  /** Container to flash in the layout after a search jump. Clears itself. */
+  revealedContainerId: ID | null
   inspectorTab: 'object' | 'items'
   cameraPreset: number
   /** 'plan' is the SVG floor plan; 'webgl' is the three.js perspective scene. */
@@ -55,6 +57,8 @@ interface Store extends AppData, UIState {
   setActiveSite: (id: ID | null) => void
   setActiveRoom: (id: ID | null) => void
   selectContainer: (id: ID | null) => void
+  /** Jump to a container and flash it in the layout. */
+  revealContainer: (id: ID) => void
   setInspectorTab: (t: 'object' | 'items') => void
   setCameraPreset: (n: number) => void
   setViewMode: (m: 'plan' | 'webgl') => void
@@ -121,6 +125,7 @@ export const useStore = create<Store>()(
       activeSiteId: null,
       activeRoomId: null,
       selectedContainerId: null,
+      revealedContainerId: null,
       inspectorTab: 'object',
       cameraPreset: 0,
       viewMode: 'plan',
@@ -141,6 +146,34 @@ export const useStore = create<Store>()(
         set({ activeRoomId, activeSiteId: room?.siteId ?? get().activeSiteId, selectedContainerId: null })
       },
       selectContainer: (selectedContainerId) => set({ selectedContainerId }),
+
+      /**
+       * Jump to a container from anywhere (search, an alert, the inventory
+       * table) and make it obvious which one was found.
+       *
+       * Selecting alone is not enough: selection looks identical whether you
+       * clicked the object yourself or arrived from a search across three
+       * rooms, so on a busy floor plan you still have to hunt for the thing you
+       * just searched for. The reveal flag drives a temporary highlight that
+       * clears itself, keeping the emphasis on "this is the one" without
+       * leaving a second permanent selection state behind.
+       */
+      revealContainer: (id) => {
+        const c = get().containers.find((k) => k.id === id)
+        if (!c) return
+        const room = get().rooms.find((r) => r.id === c.roomId)
+        set({
+          view: 'rooms',
+          activeRoomId: c.roomId,
+          activeSiteId: room?.siteId ?? get().activeSiteId,
+          selectedContainerId: id,
+          inspectorOpen: true,
+          revealedContainerId: id,
+        })
+        setTimeout(() => {
+          if (get().revealedContainerId === id) set({ revealedContainerId: null })
+        }, 2400)
+      },
       setInspectorTab: (inspectorTab) => set({ inspectorTab }),
       setCameraPreset: (cameraPreset) => set({ cameraPreset }),
       setViewMode: (viewMode) => set({ viewMode }),

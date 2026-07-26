@@ -7,7 +7,7 @@ import { ITEM_STATUSES } from '../types'
 import { useStore } from '../store'
 import { ItemForm } from '../components/ItemForm'
 import { LabelSheet } from '../components/LabelSheet'
-import { Empty } from '../components/ui'
+import { Empty, Select } from '../components/ui'
 import { toCSV } from '../lib/csv'
 import { cx, daysUntil, download, fmtDate, fmtMoney, fmtNum } from '../lib/utils'
 
@@ -20,7 +20,7 @@ export function InventoryView() {
   const settings = useStore((s) => s.settings)
   const setView = useStore((s) => s.setView)
   const setActiveRoom = useStore((s) => s.setActiveRoom)
-  const selectContainer = useStore((s) => s.selectContainer)
+  const revealContainer = useStore((s) => s.revealContainer)
   const setInspectorTab = useStore((s) => s.setInspectorTab)
 
   const [q, setQ] = useState('')
@@ -125,10 +125,8 @@ export function InventoryView() {
   const jump = (i: Item) => {
     const c = containers.find((k) => k.id === i.containerId)
     if (!c) return
-    setActiveRoom(c.roomId)
-    selectContainer(c.id)
     setInspectorTab('items')
-    setView('rooms')
+    revealContainer(c.id)
   }
 
   const toggle = (id: string) =>
@@ -143,7 +141,7 @@ export function InventoryView() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b hairline px-5 py-3" style={{ background: 'var(--panel)' }}>
+      <header className="border-b hairline px-3 py-3 sm:px-5" style={{ background: 'var(--panel)' }}>
         <div className="flex flex-wrap items-center gap-2">
           <div>
             <h1 className="text-[15px] font-semibold">Inventory</h1>
@@ -152,11 +150,11 @@ export function InventoryView() {
               {' '}{fmtMoney(totals.value, settings.currency)} · {fmtNum(totals.weight, 1)} kg
             </p>
           </div>
-          <div className="ml-auto flex flex-wrap items-center gap-1.5">
-            <div className="relative">
+          <div className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto">
+            <div className="relative w-full sm:w-auto">
               <ScanLine size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 muted" />
               <input
-                className="input w-64 pl-7"
+                className="input w-full pl-7 sm:w-64"
                 placeholder="Search or scan barcode…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -177,24 +175,37 @@ export function InventoryView() {
 
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <span className="flex items-center gap-1 text-[11px] muted"><Filter size={12} /> Filters{activeFilters ? ` (${activeFilters})` : ''}</span>
-          <select className="select w-auto" value={roomFilter} onChange={(e) => { setRoomFilter(e.target.value); setContainerFilter('') }}>
-            <option value="">All rooms</option>
-            {rooms.map((r) => <option key={r.id} value={r.id}>{r.code} — {r.name}</option>)}
-          </select>
-          <select className="select w-auto" value={containerFilter} onChange={(e) => setContainerFilter(e.target.value)}>
-            <option value="">All containers</option>
-            {containers.filter((c) => !roomFilter || c.roomId === roomFilter).map((c) => (
-              <option key={c.id} value={c.id}>{c.code} · {c.name}</option>
-            ))}
-          </select>
-          <select className="select w-auto" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            <option value="">All categories</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select className="select w-auto" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as ItemStatus | '')}>
-            <option value="">Any status</option>
-            {ITEM_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
+          <Select
+            className="w-[150px]"
+            value={roomFilter}
+            onChange={(v) => { setRoomFilter(v); setContainerFilter('') }}
+            options={[{ value: '', label: 'All rooms' }, ...rooms.map((r) => ({ value: r.id, label: `${r.code} — ${r.name}` }))]}
+            ariaLabel="Filter by room"
+          />
+          <Select
+            className="w-[160px]"
+            value={containerFilter}
+            onChange={setContainerFilter}
+            options={[
+              { value: '', label: 'All containers' },
+              ...containers.filter((c) => !roomFilter || c.roomId === roomFilter).map((c) => ({ value: c.id, label: `${c.code} · ${c.name}` })),
+            ]}
+            ariaLabel="Filter by container"
+          />
+          <Select
+            className="w-[140px]"
+            value={categoryFilter}
+            onChange={setCategoryFilter}
+            options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: c, label: c }))]}
+            ariaLabel="Filter by category"
+          />
+          <Select
+            className="w-[130px]"
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as ItemStatus | '')}
+            options={[{ value: '', label: 'Any status' }, ...ITEM_STATUSES.map((s) => ({ value: s.value, label: s.label }))]}
+            ariaLabel="Filter by status"
+          />
           {(['low', 'expiring', 'expired'] as const).map((f) => (
             <button key={f} className={cx('btn btn-sm', flag === f && 'btn-active')} onClick={() => setFlag(flag === f ? '' : f)}>
               {f === 'low' ? 'Low stock' : f === 'expiring' ? `Expiring ≤${settings.expiryWarnDays}d` : 'Expired'}

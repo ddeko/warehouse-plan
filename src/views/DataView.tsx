@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Database, Download, FileUp, RotateCcw, Sparkles, Upload, HardDrive } from 'lucide-react'
 import type { AppData, Units } from '../types'
 import { useStore, DEFAULT_SETTINGS } from '../store'
-import { Confirm, NumberField, SelectField, SectionTitle, TextField, Toggle } from '../components/ui'
+import { Confirm, NumberField, Select, SelectField, SectionTitle, TextField, Toggle } from '../components/ui'
 import { parseCSV, toCSV } from '../lib/csv'
 import { download, fmtNum, generateBarcode, uid } from '../lib/utils'
 
@@ -174,10 +174,16 @@ export function DataView() {
             <div className="flex flex-wrap gap-1.5">
               <button className="btn btn-primary" onClick={doExportJson}><Download size={13} /> Export JSON backup</button>
               <button className="btn" onClick={() => jsonInput.current?.click()}><Upload size={13} /> Import JSON</button>
-              <select className="select w-auto" value={importMode} onChange={(e) => setImportMode(e.target.value as 'replace' | 'merge')}>
-                <option value="replace">Replace everything</option>
-                <option value="merge">Merge into current</option>
-              </select>
+              <Select
+                className="w-[190px]"
+                value={importMode}
+                onChange={(v) => setImportMode(v as 'replace' | 'merge')}
+                options={[
+                  { value: 'replace', label: 'Replace everything' },
+                  { value: 'merge', label: 'Merge into current' },
+                ]}
+                ariaLabel="Import mode"
+              />
             </div>
             <input
               ref={jsonInput}

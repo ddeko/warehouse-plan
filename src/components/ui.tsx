@@ -1,6 +1,220 @@
-import { useEffect, useRef, type ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { Check, ChevronDown, X } from 'lucide-react'
 import { cx } from '../lib/utils'
+
+/* ------------------------------------------------------------------ select */
+
+export interface SelectOption<T extends string = string> {
+  value: T
+  label: string
+  /** Muted trailing text — counts, codes, units. */
+  hint?: string
+  /** Heading to file this option under. Replaces `<optgroup>`. */
+  group?: string
+  disabled?: boolean
+}
+
+/**
+ * Dropdown built out of a button and a portalled listbox.
+ *
+ * Not a `<select>`. A native select's *closed* control can be styled, but the
+ * option list that drops out of it is rendered by the operating system —
+ * outside the document, immune to CSS, and in the OS font and highlight colour.
+ * So the app had a themed control that opened a grey Windows popup, which is
+ * the one part of the UI that could never match. The only fix is to own the
+ * popup, which means owning the keyboard behaviour too:
+ *
+ *  - closed: Enter / Space / Arrow opens, landing on the current value
+ *  - open:   arrows move, Home/End jump, Enter commits, Escape cancels
+ *
+ * Focus deliberately stays on the trigger while open and the active option is
+ * advertised via `aria-activedescendant`, which is the listbox pattern screen
+ * readers expect and avoids a focus round-trip on every arrow press.
+ *
+ * The menu is portalled to `<body>` because several of these live inside panels
+ * with `overflow: hidden`, which would otherwise clip the popup.
+ */
+export function Select<T extends string>({
+  value, onChange, options, placeholder = 'Select…', disabled, className, title, ariaLabel,
+}: {
+  value: T | ''
+  onChange: (v: T) => void
+  options: SelectOption<T>[]
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+  title?: string
+  ariaLabel?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(-1)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [box, setBox] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number } | null>(null)
+
+  const selectedIndex = options.findIndex((o) => o.value === value)
+  const selected = selectedIndex >= 0 ? options[selectedIndex] : null
+
+  /** Interleave group headings into the option order, first-seen wins. */
+  const rows = useMemo(() => {
+    const out: ({ kind: 'group'; label: string } | { kind: 'opt'; opt: SelectOption<T>; index: number })[] = []
+    let current: string | undefined
+    options.forEach((opt, index) => {
+      if (opt.group && opt.group !== current) {
+        current = opt.group
+        out.push({ kind: 'group', label: opt.group })
+      }
+      out.push({ kind: 'opt', opt, index })
+    })
+    return out
+  }, [options])
+
+  /* Anchored to the trigger in viewport coordinates. Opening downward is the
+     default, but a control near the bottom of the window flips upward — pinning
+     via `bottom` rather than `top` means the height never has to be measured. */
+  const place = useCallback(() => {
+    const el = triggerRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const below = window.innerHeight - r.bottom - 10
+    const above = r.top - 10
+    const down = below >= 180 || below >= above
+    setBox({
+      left: r.left,
+      width: r.width,
+      ...(down ? { top: r.bottom + 4 } : { bottom: window.innerHeight - r.top + 4 }),
+      maxH: Math.max(140, (down ? below : above) - 4),
+    })
+  }, [])
+
+  useLayoutEffect(() => { if (open) place() }, [open, place])
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (!triggerRef.current?.contains(t) && !menuRef.current?.contains(t)) setOpen(false)
+    }
+    // Capture, so scrolling any ancestor repositions rather than leaving the
+    // menu floating away from its trigger.
+    window.addEventListener('pointerdown', onDown, true)
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('pointerdown', onDown, true)
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open, place])
+
+  // Keep the highlighted row on screen as the arrows walk past the fold.
+  useEffect(() => {
+    if (!open || active < 0) return
+    menuRef.current?.querySelector(`[data-idx="${active}"]`)?.scrollIntoView({ block: 'nearest' })
+  }, [open, active])
+
+  const step = (from: number, dir: 1 | -1) => {
+    for (let i = from + dir; i >= 0 && i < options.length; i += dir) {
+      if (!options[i].disabled) return i
+    }
+    return from
+  }
+
+  const commit = (i: number) => {
+    const opt = options[i]
+    if (!opt || opt.disabled) return
+    onChange(opt.value)
+    setOpen(false)
+    triggerRef.current?.focus()
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return
+    if (!open) {
+      if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+        e.preventDefault()
+        setActive(selectedIndex >= 0 ? selectedIndex : step(-1, 1))
+        setOpen(true)
+      }
+      return
+    }
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); setActive((a) => step(a, 1)); break
+      case 'ArrowUp': e.preventDefault(); setActive((a) => step(a, -1)); break
+      case 'Home': e.preventDefault(); setActive(step(-1, 1)); break
+      case 'End': e.preventDefault(); setActive(step(options.length, -1)); break
+      case 'Enter': e.preventDefault(); commit(active); break
+      case 'Escape': e.preventDefault(); setOpen(false); triggerRef.current?.focus(); break
+      case 'Tab': setOpen(false); break
+      default: break
+    }
+  }
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={ariaLabel}
+        aria-activedescendant={open && active >= 0 ? `opt-${active}` : undefined}
+        disabled={disabled}
+        title={title}
+        className={cx('input select-trigger', className)}
+        onClick={() => {
+          if (disabled) return
+          setActive(selectedIndex >= 0 ? selectedIndex : step(-1, 1))
+          setOpen((o) => !o)
+        }}
+        onKeyDown={onKeyDown}
+      >
+        <span className={cx('select-value', !selected && 'muted')}>{selected ? selected.label : placeholder}</span>
+        <ChevronDown size={13} className="shrink-0 muted" />
+      </button>
+
+      {open && box && createPortal(
+        <div
+          ref={menuRef}
+          role="listbox"
+          className="select-menu"
+          style={{ left: box.left, top: box.top, bottom: box.bottom, minWidth: box.width, maxHeight: box.maxH }}
+        >
+          {rows.map((row, i) =>
+            row.kind === 'group' ? (
+              <div key={`g${i}`} className="select-group">{row.label}</div>
+            ) : (
+              <button
+                key={row.opt.value || `o${i}`}
+                id={`opt-${row.index}`}
+                type="button"
+                role="option"
+                aria-selected={row.opt.value === value}
+                data-idx={row.index}
+                data-active={row.index === active}
+                data-selected={row.opt.value === value}
+                data-disabled={row.opt.disabled}
+                className="select-opt"
+                // Pointer, not hover: `onMouseEnter` fights the keyboard when the
+                // cursor happens to rest over the list.
+                onPointerMove={() => setActive(row.index)}
+                onClick={() => commit(row.index)}
+              >
+                <span className="select-value">{row.opt.label}</span>
+                {row.opt.hint && <span className="shrink-0 text-[11px] muted">{row.opt.hint}</span>}
+                {row.opt.value === value && <Check size={13} className="shrink-0" />}
+              </button>
+            ),
+          )}
+          {!options.length && <div className="px-2 py-2 text-[12px] muted">Nothing to choose from</div>}
+        </div>,
+        document.body,
+      )}
+    </>
+  )
+}
 
 export function Field({ label, hint, children, className }: { label: string; hint?: string; children: ReactNode; className?: string }) {
   return (
@@ -88,11 +302,7 @@ export function SelectField<T extends string>({
 }) {
   return (
     <Field label={label} hint={hint} className={className}>
-      <select className="select" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value as T)}>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+      <Select value={value} onChange={onChange} options={options} disabled={disabled} ariaLabel={label} />
     </Field>
   )
 }

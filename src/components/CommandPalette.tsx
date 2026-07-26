@@ -16,6 +16,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const setView = useStore((s) => s.setView)
   const setActiveRoom = useStore((s) => s.setActiveRoom)
   const selectContainer = useStore((s) => s.selectContainer)
+  const revealContainer = useStore((s) => s.revealContainer)
   const setInspectorTab = useStore((s) => s.setInspectorTab)
 
   const [q, setQ] = useState('')
@@ -64,17 +65,13 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       setActiveRoom(h.id)
       setView('rooms')
     } else if (h.kind === 'container') {
-      setActiveRoom(h.roomId)
-      selectContainer(h.id)
       setInspectorTab('object')
-      setView('rooms')
+      revealContainer(h.id)
     } else {
       const c = containers.find((k) => k.id === h.containerId)
       if (c) {
-        setActiveRoom(c.roomId)
-        selectContainer(c.id)
         setInspectorTab('items')
-        setView('rooms')
+        revealContainer(c.id)
       }
     }
     onClose()

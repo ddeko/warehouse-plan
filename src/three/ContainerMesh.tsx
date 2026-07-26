@@ -17,6 +17,7 @@ export interface ContainerVisual {
   itemCount: number
   selected: boolean
   hovered: boolean
+  revealed: boolean
   invalid: boolean
   showLabel: boolean
   showBadge: boolean
@@ -28,7 +29,7 @@ export interface ContainerVisual {
 }
 
 export const ContainerMesh = memo(function ContainerMesh({
-  container: c, fill, itemCount, selected, hovered, invalid, showLabel, showBadge,
+  container: c, fill, itemCount, selected, hovered, revealed, invalid, showLabel, showBadge,
   onPointerDown, onPointerOver, onPointerOut, onClick, onDoubleClick,
 }: ContainerVisual) {
   const meta = CONTAINER_META[c.type]
@@ -95,6 +96,16 @@ export const ContainerMesh = memo(function ContainerMesh({
         <boxGeometry args={[w, h, d]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
+
+      {/* Search result marker. Static rather than animated: the scene renders
+          on demand, so a pulsing ring would hold the frame loop open for as
+          long as it showed. It clears itself after a couple of seconds. */}
+      {revealed && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -M(c.y) + 0.02, 0]} raycast={NO_RAYCAST}>
+          <ringGeometry args={[Math.max(w, d) * 0.62, Math.max(w, d) * 0.62 + 0.09, 48]} />
+          <meshBasicMaterial color="#f59e0b" transparent opacity={0.95} depthTest={false} />
+        </mesh>
+      )}
 
       {selected && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -M(c.y) + 0.014, 0]} raycast={NO_RAYCAST}>

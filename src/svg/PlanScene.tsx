@@ -58,6 +58,7 @@ interface ObjProps {
   view: View
   selected: boolean
   hovered: boolean
+  revealed: boolean
   showLabel: boolean
   showBadge: boolean
   onPick: (id: string, e: React.PointerEvent) => void
@@ -74,7 +75,7 @@ interface ObjProps {
  * smooth on a room with fifty objects.
  */
 const PlanObject = memo(function PlanObject({
-  container: c, fill, count, view, selected, hovered, showLabel, showBadge, onPick, onHover, onOpen,
+  container: c, fill, count, view, selected, hovered, revealed, showLabel, showBadge, onPick, onHover, onOpen,
 }: ObjProps) {
   const meta = CONTAINER_META[c.type]
   const stroke = selected ? INK_SELECTED : INK
@@ -97,7 +98,9 @@ const PlanObject = memo(function PlanObject({
   }
 
   /** Half the footprint, so labels clear the object instead of sitting on it. */
-  const halfDepth = M(footprint(c).d) / 2
+  const fp = footprint(c)
+  const halfDepth = M(fp.d) / 2
+  const halfWidth = M(fp.w) / 2
 
   return (
     <g
@@ -108,6 +111,20 @@ const PlanObject = memo(function PlanObject({
       onDoubleClick={(e) => { e.stopPropagation(); onOpen(c.id) }}
       style={{ cursor: c.locked ? 'not-allowed' : 'grab' }}
     >
+      {revealed && (
+        <rect
+          className="reveal-ring"
+          x={centre[0] - halfWidth - 0.18}
+          y={centre[1] - halfDepth - 0.18}
+          width={halfWidth * 2 + 0.36}
+          height={halfDepth * 2 + 0.36}
+          rx={0.12}
+          fill="none"
+          stroke="#f59e0b"
+          strokeWidth={0.07}
+        />
+      )}
+
       {parts.map(({ part, box }, i) => {
         const fillCol = toneColor(part.tone, base)
         if (part.round) {
@@ -148,13 +165,14 @@ const PlanObject = memo(function PlanObject({
 /* ------------------------------------------------------------------- scene */
 
 export function PlanScene({
-  room, containers, items, settings, selectedId, onSelect, onOpenItems, preset, zoomCmd, fitTick,
+  room, containers, items, settings, selectedId, revealedId, onSelect, onOpenItems, preset, zoomCmd, fitTick,
 }: {
   room: Room
   containers: Container[]
   items: Item[]
   settings: Settings
   selectedId: string | null
+  revealedId: string | null
   onSelect: (id: string | null) => void
   onOpenItems: (id: string) => void
   preset: number
@@ -429,6 +447,7 @@ export function PlanScene({
                 view={view}
                 selected={selectedId === c.id}
                 hovered={hoveredId === c.id}
+                revealed={revealedId === c.id}
                 showLabel={settings.showLabels}
                 showBadge={settings.showFillBadges}
                 onPick={onPick}

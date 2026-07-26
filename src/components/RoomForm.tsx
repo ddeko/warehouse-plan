@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Room } from '../types'
 import { useStore } from '../store'
-import { Field, Modal, NumberField, TextField } from './ui'
+import { Field, Modal, NumberField, Select, TextField } from './ui'
 import { areaM2, cx, fmtNum, fromCm, toCm, unitSuffix, volM3 } from '../lib/utils'
 
 const FLOOR_SWATCHES = ['#f6f7fb', '#eef6fa', '#faf6f1', '#f3f1fa', '#eef8f1', '#fdf6ee', '#f1f4f8']
@@ -88,9 +88,12 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
 
       <div className="grid gap-3 md:grid-cols-3">
         <Field label="Site / location" className="md:col-span-2">
-          <select className="select" value={d.siteId ?? ''} onChange={(e) => set('siteId', e.target.value)}>
-            {sites.map((s) => <option key={s.id} value={s.id}>{s.code} — {s.name}</option>)}
-          </select>
+          <Select
+            value={d.siteId ?? ''}
+            onChange={(v) => set('siteId', v)}
+            options={sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }))}
+            ariaLabel="Site"
+          />
         </Field>
         <TextField label="Code" mono value={d.code ?? ''} onChange={(v) => set('code', v)} placeholder="AUTO" hint="Unique within the site" />
 

@@ -312,13 +312,14 @@ interface DragState {
 }
 
 function SceneContent({
-  room, containers, items, settings, selectedId, onSelect, onOpenItems, hoveredId, setHoveredId, setDragging, mode, dark,
+  room, containers, items, settings, selectedId, revealedId, onSelect, onOpenItems, hoveredId, setHoveredId, setDragging, mode, dark,
 }: {
   room: Room
   containers: Container[]
   items: Item[]
   settings: Settings
   selectedId: string | null
+  revealedId: string | null
   onSelect: (id: string | null) => void
   onOpenItems: (id: string) => void
   hoveredId: string | null
@@ -477,6 +478,7 @@ function SceneContent({
             itemCount={agg?.count ?? 0}
             selected={selectedId === c.id}
             hovered={hoveredId === c.id}
+            revealed={revealedId === c.id}
             invalid={false}
             showLabel={settings.showLabels}
             showBadge={settings.showFillBadges && !CONTAINER_META[c.type].obstacle}
@@ -502,13 +504,14 @@ function SceneContent({
 // --------------------------------------------------------------------- root
 
 export function Scene({
-  room, containers, items, settings, selectedId, onSelect, onOpenItems, preset, mode, zoomCmd, fitTick, freeOrbit,
+  room, containers, items, settings, selectedId, revealedId, onSelect, onOpenItems, preset, mode, zoomCmd, fitTick, freeOrbit,
 }: {
   room: Room
   containers: Container[]
   items: Item[]
   settings: Settings
   selectedId: string | null
+  revealedId: string | null
   onSelect: (id: string | null) => void
   onOpenItems: (id: string) => void
   preset: number
@@ -570,6 +573,7 @@ export function Scene({
         items={items}
         settings={settings}
         selectedId={selectedId}
+        revealedId={revealedId}
         onSelect={onSelect}
         onOpenItems={onOpenItems}
         hoveredId={hoveredId}

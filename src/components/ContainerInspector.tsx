@@ -6,7 +6,7 @@ import {
 import type { Container, ContainerType, Item } from '../types'
 import { CONTAINER_TYPES, CONTAINER_META, ITEM_STATUSES } from '../types'
 import { useStore, containerStats } from '../store'
-import { Bar, Confirm, Field, SelectField, TextField, Toggle, Empty } from './ui'
+import { Bar, Confirm, Field, Select, SelectField, TextField, Toggle, Empty } from './ui'
 import { ItemForm } from './ItemForm'
 import { LabelSheet } from './LabelSheet'
 import { TypeIcon } from './TypeIcon'
@@ -374,16 +374,16 @@ function TransferDialog({
         <div className="space-y-2">
           <Num label="Quantity" value={qty} min={0} max={item.qty} onChange={setQty} suffix={item.uom} />
           <Field label="Destination container">
-            <select className="select" value={target} onChange={(e) => setTarget(e.target.value)}>
-              <option value="">Select…</option>
-              {rooms.map((r) => (
-                <optgroup key={r.id} label={`${r.code} — ${r.name}`}>
-                  {containers.filter((c) => c.roomId === r.id && c.id !== item.containerId && c.capacity > 0).map((c) => (
-                    <option key={c.id} value={c.id}>{c.code} · {c.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            <Select
+              value={target}
+              onChange={setTarget}
+              ariaLabel="Destination container"
+              options={rooms.flatMap((r) =>
+                containers
+                  .filter((c) => c.roomId === r.id && c.id !== item.containerId && c.capacity > 0)
+                  .map((c) => ({ value: c.id, label: `${c.code} · ${c.name}`, group: `${r.code} — ${r.name}` })),
+              )}
+            />
           </Field>
         </div>
         <div className="mt-4 flex justify-end gap-2">

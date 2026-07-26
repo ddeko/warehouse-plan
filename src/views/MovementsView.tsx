@@ -3,7 +3,7 @@ import { Download, Plus, Search, Trash2, X } from 'lucide-react'
 import type { MovementType } from '../types'
 import { MOVEMENT_TYPES, UOMS } from '../types'
 import { useStore } from '../store'
-import { Confirm, Empty, Field, Modal, NumberField, SelectField, TextField } from '../components/ui'
+import { Confirm, Empty, Field, Modal, NumberField, Select, SelectField, TextField } from '../components/ui'
 import { toCSV } from '../lib/csv'
 import { cx, download, fmtDateTime, fmtNum } from '../lib/utils'
 import { describeLocation } from '../lib/movements'
@@ -62,24 +62,31 @@ export function MovementsView() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b hairline px-5 py-3" style={{ background: 'var(--panel)' }}>
+      <header className="border-b hairline px-3 py-3 sm:px-5" style={{ background: 'var(--panel)' }}>
         <div className="flex flex-wrap items-center gap-2">
           <div>
             <h1 className="text-[15px] font-semibold">Movements &amp; audit trail</h1>
             <p className="text-[11.5px] muted">{fmtNum(filtered.length)} entries · every receipt, pick, transfer, count and relocation</p>
           </div>
-          <div className="ml-auto flex flex-wrap items-center gap-1.5">
-            <div className="relative">
+          <div className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Search size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 muted" />
-              <input className="input w-56 pl-7" placeholder="Search reference, SKU, user…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className="input w-full pl-7 sm:w-56" placeholder="Search reference, SKU, user…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
-            <select className="select w-auto" value={type} onChange={(e) => setType(e.target.value as MovementType | '')}>
-              <option value="">All types</option>
-              {MOVEMENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-            <select className="select w-auto" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-              {[7, 30, 90, 365, 0].map((d) => <option key={d} value={d}>{d === 0 ? 'All time' : `Last ${d} days`}</option>)}
-            </select>
+            <Select
+              className="w-[130px]"
+              value={type}
+              onChange={(v) => setType(v as MovementType | '')}
+              options={[{ value: '', label: 'All types' }, ...MOVEMENT_TYPES.map((t) => ({ value: t.value, label: t.label }))]}
+              ariaLabel="Filter by movement type"
+            />
+            <Select
+              className="w-[130px]"
+              value={String(days)}
+              onChange={(v) => setDays(Number(v))}
+              options={[7, 30, 90, 365, 0].map((d) => ({ value: String(d), label: d === 0 ? 'All time' : `Last ${d} days` }))}
+              ariaLabel="Filter by date range"
+            />
             <button className="btn btn-primary" onClick={() => setPostOpen(true)} disabled={!containers.length}><Plus size={13} /> Post movement</button>
             <button className="btn" onClick={exportCsv} disabled={!filtered.length}><Download size={13} /> CSV</button>
             <button className="btn btn-danger" onClick={() => setConfirmClear(true)} disabled={!movements.length}><Trash2 size={13} /></button>
@@ -213,13 +220,16 @@ function PostMovement({ open, onClose }: { open: boolean; onClose: () => void })
           options={MOVEMENT_TYPES.filter((t) => t.value !== 'relocate').map((t) => ({ value: t.value, label: t.label }))}
         />
         <Field label="Item">
-          <select className="select" value={itemId} onChange={(e) => setItemId(e.target.value)}>
-            <option value="">Select stock line…</option>
-            {items.map((i) => {
+          <Select
+            value={itemId}
+            onChange={setItemId}
+            placeholder="Select stock line…"
+            ariaLabel="Item"
+            options={items.map((i) => {
               const c = containers.find((k) => k.id === i.containerId)
-              return <option key={i.id} value={i.id}>{i.sku} — {i.name} ({c?.code}) · {i.qty} {i.uom}</option>
+              return { value: i.id, label: `${i.sku} — ${i.name} (${c?.code})`, hint: `${i.qty} ${i.uom}` }
             })}
-          </select>
+          />
         </Field>
         <NumberField
           label="Quantity"
@@ -230,16 +240,17 @@ function PostMovement({ open, onClose }: { open: boolean; onClose: () => void })
         />
         {type === 'transfer' ? (
           <Field label="Destination">
-            <select className="select" value={target} onChange={(e) => setTarget(e.target.value)}>
-              <option value="">Select container…</option>
-              {rooms.map((r) => (
-                <optgroup key={r.id} label={`${r.code} — ${r.name}`}>
-                  {containers.filter((c) => c.roomId === r.id && c.capacity > 0 && c.id !== item?.containerId).map((c) => (
-                    <option key={c.id} value={c.id}>{c.code} · {c.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            <Select
+              value={target}
+              onChange={setTarget}
+              placeholder="Select container…"
+              ariaLabel="Destination container"
+              options={rooms.flatMap((r) =>
+                containers
+                  .filter((c) => c.roomId === r.id && c.capacity > 0 && c.id !== item?.containerId)
+                  .map((c) => ({ value: c.id, label: `${c.code} · ${c.name}`, group: `${r.code} — ${r.name}` })),
+              )}
+            />
           </Field>
         ) : (
           <TextField label="Reference" value={reference} onChange={setReference} placeholder="GRN-10234" mono />

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Printer, X } from 'lucide-react'
 import type { Item } from '../types'
 import { Barcode } from './Barcode'
+import { Select } from './ui'
 import { useStore } from '../store'
 import { fmtDate, fmtNum } from '../lib/utils'
 
@@ -40,13 +41,13 @@ export function LabelSheet({
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1 text-[12px] text-slate-600">
             Columns
-            <select
-              className="rounded border border-slate-300 px-1.5 py-0.5 text-[12px]"
-              value={perRow}
-              onChange={(e) => setPerRow(Number(e.target.value))}
-            >
-              {[2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+            <Select
+              className="w-[64px]"
+              value={String(perRow)}
+              onChange={(v) => setPerRow(Number(v))}
+              options={[2, 3, 4].map((n) => ({ value: String(n), label: String(n) }))}
+              ariaLabel="Columns per row"
+            />
           </label>
           <label className="flex items-center gap-1 text-[12px] text-slate-600">
             <input type="checkbox" checked={showQr} onChange={(e) => setShowQr(e.target.checked)} />

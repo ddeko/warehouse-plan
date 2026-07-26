@@ -3,7 +3,7 @@ import { RefreshCw, Trash2 } from 'lucide-react'
 import type { Item, ItemStatus, Uom } from '../types'
 import { ITEM_STATUSES, UOMS } from '../types'
 import { useStore } from '../store'
-import { Modal, NumberField, SelectField, TextField, Field } from './ui'
+import { Modal, NumberField, Select, SelectField, TextField, Field } from './ui'
 import { Barcode } from './Barcode'
 import { generateBarcode, todayISO } from '../lib/utils'
 
@@ -159,20 +159,15 @@ export function ItemForm({ open, onClose, item, containerId }: Props) {
         <TextField label="Supplier" value={draft.supplier ?? ''} onChange={(v) => set('supplier', v)} />
 
         <Field label="Location" className="md:col-span-2">
-          <select
-            className="select"
+          <Select
             value={draft.containerId ?? containerId ?? ''}
-            onChange={(e) => set('containerId', e.target.value)}
-          >
-            <option value="">Select container…</option>
-            {containerOptions.map(({ room, list }) => (
-              <optgroup key={room.id} label={`${room.code} — ${room.name}`}>
-                {list.map((c) => (
-                  <option key={c.id} value={c.id}>{c.code} · {c.name}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+            onChange={(v) => set('containerId', v)}
+            placeholder="Select container…"
+            ariaLabel="Location"
+            options={containerOptions.flatMap(({ room, list }) =>
+              list.map((c) => ({ value: c.id, label: `${c.code} · ${c.name}`, group: `${room.code} — ${room.name}` })),
+            )}
+          />
         </Field>
         <TextField label="Sub-location / bin" value={draft.slot ?? ''} onChange={(v) => set('slot', v)} placeholder="L2-B3" mono />
 

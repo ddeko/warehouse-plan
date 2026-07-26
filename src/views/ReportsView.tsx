@@ -198,7 +198,7 @@ export function ReportsView() {
                 )
               })}
             </div>
-            <div className="card overflow-hidden">
+            <div className="card overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr><th>Class</th><th>SKU</th><th>Item</th><th>Category</th><th className="num">Qty</th><th className="num">Value</th><th className="num">Share</th><th className="w-40">Cumulative</th></tr>
@@ -233,7 +233,7 @@ export function ReportsView() {
         {report === 'capacity' && (
           <div className="space-y-4">
             {capacity.map((r) => (
-              <section key={r.room.id} className="card overflow-hidden">
+              <section key={r.room.id} className="card overflow-x-auto">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b hairline px-3 py-2.5">
                   <div>
                     <p className="text-[13px] font-semibold">{r.room.code} — {r.room.name}</p>
@@ -283,7 +283,7 @@ export function ReportsView() {
         )}
 
         {report === 'aging' && (
-          <div className="card overflow-hidden">
+          <div className="card overflow-x-auto">
             <table className="table">
               <thead><tr><th>Age bucket</th><th className="num">Lines</th><th className="num">Units</th><th className="num">Value</th><th className="w-52">Share of value</th></tr></thead>
               <tbody>
@@ -302,7 +302,7 @@ export function ReportsView() {
         )}
 
         {report === 'valuation' && (
-          <div className="card overflow-hidden">
+          <div className="card overflow-x-auto">
             <table className="table">
               <thead><tr><th>Category</th><th className="num">Lines</th><th className="num">Units</th><th className="num">Weight</th><th className="num">Value</th><th className="w-52">Share</th></tr></thead>
               <tbody>
@@ -332,7 +332,7 @@ export function ReportsView() {
         )}
 
         {report === 'zones' && (
-          <div className="card overflow-hidden">
+          <div className="card overflow-x-auto">
             <table className="table">
               <thead><tr><th>Zone</th><th className="num">Rooms</th><th className="num">Objects</th><th className="num">Slots used</th><th className="w-40">Occupancy</th><th className="num">Value</th></tr></thead>
               <tbody>
