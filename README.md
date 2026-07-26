@@ -14,7 +14,6 @@ npm run dev      # http://localhost:5180
 npm run build    # production bundle in dist/
 ```
 
-
 ### Rooms
 - Create rooms from width / length / height (cm, m or inches — stored in cm).
 - Presets for common footprints (stock room, 24×16 m warehouse, 40 ft container…).
