@@ -10,6 +10,7 @@ const M = (cm: number) => cm / 100
 
 const INK = '#3a4459'
 const INK_SELECTED = '#3b63f0'
+const REVEAL = '#2f7dff'
 const GOODS = '#e9edf5'
 const GLASS = '#cfd8e6'
 const STROKE = 0.014
@@ -120,7 +121,7 @@ const PlanObject = memo(function PlanObject({
           height={halfDepth * 2 + 0.36}
           rx={0.12}
           fill="none"
-          stroke="#f59e0b"
+          stroke={REVEAL}
           strokeWidth={0.07}
         />
       )}

@@ -50,6 +50,8 @@ export const NO_RAYCAST = () => null
 export const INK = '#3a4459'
 export const INK_SELECTED = '#3b63f0'
 export const INK_INVALID = '#e05252'
+/** Marker for the object a search just jumped to. */
+export const REVEAL = '#2f7dff'
 
 const cache = new Map<string, THREE.Material>()
 

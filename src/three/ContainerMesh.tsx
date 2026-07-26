@@ -5,7 +5,7 @@ import { CONTAINER_META } from '../types'
 import { TextSprite } from './TextSprite'
 import { buildParts } from '../lib/parts'
 import {
-  INK, INK_INVALID, INK_SELECTED, NO_RAYCAST, OUTLINE, UNIT_BOX, UNIT_BOX_EDGES, UNIT_CYL, UNIT_CYL_EDGES,
+  INK, INK_INVALID, INK_SELECTED, NO_RAYCAST, REVEAL, OUTLINE, UNIT_BOX, UNIT_BOX_EDGES, UNIT_CYL, UNIT_CYL_EDGES,
   deepen, lineMaterial, outlineMaterial, tint, toonMaterial,
 } from './toon'
 
@@ -39,6 +39,10 @@ export const ContainerMesh = memo(function ContainerMesh({
 
   const inkColor = invalid ? INK_INVALID : selected ? INK_SELECTED : INK
   const parts = useMemo(() => buildParts(c, fill), [c, fill])
+
+  /* Half-diagonal plus a margin, so the ring clears the footprint's corners
+     whatever its proportions. */
+  const revealRadius = Math.hypot(w, d) / 2 + 0.14
 
   const mats = useMemo(() => {
     const base = hovered && !selected ? tint(c.color, 0.18) : c.color
@@ -97,13 +101,21 @@ export const ContainerMesh = memo(function ContainerMesh({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* Search result marker. Static rather than animated: the scene renders
-          on demand, so a pulsing ring would hold the frame loop open for as
-          long as it showed. It clears itself after a couple of seconds. */}
+      {/*
+        Search result marker: a ring on the floor, encircling the object.
+
+        Sized off the footprint's half-diagonal so it clears every corner —
+        `max(w, d)` produced a circle narrower than the diagonal, which cut
+        straight through the object instead of going round it. And it depth
+        tests normally: `depthTest={false}` does not put a surface in front,
+        it only skips the test, so every opaque mesh drawn afterwards painted
+        over the ring and left a half-hidden arc. Lying flat on the floor
+        outside the footprint, nothing occludes it anyway.
+      */}
       {revealed && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -M(c.y) + 0.02, 0]} raycast={NO_RAYCAST}>
-          <ringGeometry args={[Math.max(w, d) * 0.62, Math.max(w, d) * 0.62 + 0.09, 48]} />
-          <meshBasicMaterial color="#f59e0b" transparent opacity={0.95} depthTest={false} />
+          <ringGeometry args={[revealRadius, revealRadius + 0.07, 64]} />
+          <meshBasicMaterial color={REVEAL} transparent opacity={0.95} depthWrite={false} />
         </mesh>
       )}
 
