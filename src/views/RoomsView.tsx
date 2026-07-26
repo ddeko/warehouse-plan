@@ -350,7 +350,17 @@ export function RoomsView() {
       {/* ---------------------------------------------------------- workspace */}
       {/* `relative` anchors the inspector drawer and its scrim below `lg`. */}
       <div className="relative flex min-h-0 flex-1">
-        <div className="relative min-h-0 flex-1">
+        {/*
+          `min-w-0` is load-bearing. A flex item defaults to `min-width: auto`,
+          which floors it at its content's intrinsic width — and react-three-fiber
+          writes an explicit pixel width onto the <canvas>. So this column
+          refused to shrink when the inspector opened, and the 320 px panel was
+          pushed straight off the right edge of the window: open, correct, and
+          invisible. The SVG plan never hit it because it is absolutely
+          positioned and contributes no intrinsic width, which is exactly why
+          this only ever looked broken in the 3D view.
+        */}
+        <div className="relative min-h-0 min-w-0 flex-1">
         {room && viewMode !== 'webgl' && (
           <PlanScene
             room={room}
