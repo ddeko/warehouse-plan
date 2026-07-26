@@ -130,7 +130,7 @@ export const useStore = create<Store>()(
       revealedContainerId: null,
       inspectorTab: 'object',
       cameraPreset: 0,
-      viewMode: 'plan',
+      viewMode: 'webgl',
       freeOrbit: false,
       leftPanel: null,
       inspectorOpen: true,
