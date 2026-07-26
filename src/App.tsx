@@ -46,7 +46,7 @@ function RailButton({ label, active, onClick, children }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="group relative">
+    <div className="group relative shrink-0">
       <button className="rail-btn" data-active={!!active} onClick={onClick} aria-label={label}>
         {children}
       </button>
@@ -82,12 +82,18 @@ export default function App() {
 
   return (
     <div className="flex h-full w-full overflow-hidden">
+      {/*
+        The rail is the one thing that must never be unreachable, so it scrolls
+        rather than clipping. A landscape phone is only ~375 px tall and the
+        rail wants ~384 px, which silently cut the search and theme buttons off
+        the bottom with no way to reach them.
+      */}
       <aside
-        className="no-print flex w-[58px] shrink-0 flex-col items-center gap-1 border-r hairline py-3"
+        className="no-print nav-rail flex w-[52px] shrink-0 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden border-r hairline py-2 sm:w-[58px] sm:py-3"
         style={{ background: 'var(--panel)' }}
       >
         <div
-          className="mb-2 grid h-9 w-9 place-items-center rounded-xl"
+          className="mb-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl sm:mb-2"
           style={{ background: 'var(--accent)' }}
           title="StoreSpace"
         >
@@ -100,7 +106,7 @@ export default function App() {
           </RailButton>
         ))}
 
-        <div className="mt-auto flex flex-col items-center gap-1">
+        <div className="mt-auto flex shrink-0 flex-col items-center gap-1 pt-1">
           <RailButton label="Search  (Ctrl K)" onClick={() => setPaletteOpen(true)}>
             <Search size={18} />
           </RailButton>

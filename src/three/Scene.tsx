@@ -260,6 +260,17 @@ function CameraRig({
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: THREE.MOUSE.PAN,
       }}
+      /*
+        Touch needs its own mapping — the mouse one does not carry over. One
+        finger mirrors the left button (orbit when free, pan when locked) and
+        two fingers pinch to zoom while panning, which is what every map and
+        planner on a phone does. Without this, one finger always orbited even
+        with rotation locked, and pinch did nothing.
+      */
+      touches={{
+        ONE: canRotate ? THREE.TOUCH.ROTATE : THREE.TOUCH.PAN,
+        TWO: THREE.TOUCH.DOLLY_PAN,
+      }}
     />
   )
 }

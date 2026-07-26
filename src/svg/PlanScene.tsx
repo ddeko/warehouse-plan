@@ -304,7 +304,8 @@ export function PlanScene({
     // Coalesce to one store write per frame; pointermove can fire far more
     // often than the display refreshes and each write re-renders the scene.
     const onMove = (e: PointerEvent) => {
-      if (!drag.current) return
+      // A second finger turns the gesture into a pinch; stop moving the object.
+      if (!drag.current || pinch.current) return
       pending = e
       if (!raf) raf = requestAnimationFrame(apply)
     }
@@ -340,6 +341,9 @@ export function PlanScene({
 
   // ------------------------------------------------------------- pan / zoom
   const pan = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
+  /** Live touch points, keyed by pointerId — the basis for pinch detection. */
+  const touches = useRef(new Map<number, { x: number; y: number }>()).current
+  const pinch = useRef<{ dist: number; cx: number; cy: number; scale: number; tx: number; ty: number } | null>(null)
 
   const onBackgroundDown = (e: React.PointerEvent) => {
     if (drag.current) return
@@ -347,29 +351,88 @@ export function PlanScene({
     pan.current = { x: e.clientX, y: e.clientY, tx: cam.tx, ty: cam.ty }
   }
 
+  /* Every touch on the surface is tracked, including ones that landed on an
+     object, so a second finger can promote an in-progress drag into a pinch. */
+  const onAnyPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  }
+
   useEffect(() => {
     let raf = 0
     let last: PointerEvent | null = null
+
     const apply = () => {
       raf = 0
       const p = pan.current
-      if (!p || !last) return
+      if (!p || !last || pinch.current) return
       setCam((c) => ({ ...c, tx: p.tx + (last!.clientX - p.x), ty: p.ty + (last!.clientY - p.y) }))
     }
+
+    const two = () => [...touches.values()].slice(0, 2)
+    const spread = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
+
     const onMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' && touches.has(e.pointerId)) {
+        touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      }
+
+      /*
+        Two fingers: pinch to zoom about the midpoint, and translate by however
+        far that midpoint moves, so the gesture zooms and pans at once. Both
+        object dragging and one-finger panning are suspended for the duration —
+        otherwise the first finger keeps dragging a shelf around while the
+        second one zooms.
+      */
+      if (touches.size >= 2) {
+        const [a, b] = two()
+        const dist = spread(a, b)
+        const cx = (a.x + b.x) / 2
+        const cy = (a.y + b.y) / 2
+        if (!pinch.current) {
+          drag.current = null
+          pan.current = null
+          setGhost(null)
+          pinch.current = { dist, cx, cy, scale: camRef.current.scale, tx: camRef.current.tx, ty: camRef.current.ty }
+          return
+        }
+        const p = pinch.current
+        if (p.dist < 1) return
+        const k = Math.max(4, Math.min(2000, p.scale * (dist / p.dist))) / p.scale
+        setCam(() => ({
+          scale: p.scale * k,
+          // Zoom about the original midpoint, then follow the midpoint drift.
+          tx: p.cx - (p.cx - p.tx) * k + (cx - p.cx),
+          ty: p.cy - (p.cy - p.ty) * k + (cy - p.cy),
+        }))
+        return
+      }
+
       if (!pan.current) return
       last = e
       if (!raf) raf = requestAnimationFrame(apply)
     }
-    const onUp = () => { pan.current = null }
+
+    const onUp = (e: PointerEvent) => {
+      touches.delete(e.pointerId)
+      // Releasing one finger ends the pinch; the remaining finger must not
+      // suddenly jump the view, so panning only resumes on a fresh press.
+      if (touches.size < 2) {
+        pinch.current = null
+        pan.current = null
+      }
+    }
+
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
     return () => {
       if (raf) cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
     }
-  }, [])
+  }, [touches])
 
   const onWheel = (e: React.WheelEvent) => {
     const rect = svgRef.current?.getBoundingClientRect()
@@ -412,6 +475,7 @@ export function PlanScene({
         ref={svgRef}
         width={size.w}
         height={size.h}
+        onPointerDownCapture={onAnyPointerDown}
         onPointerDown={onBackgroundDown}
         onWheel={onWheel}
         style={{ display: 'block', touchAction: 'none' }}

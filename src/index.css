@@ -136,6 +136,30 @@ button, [role='button'], .rail-btn, .tile, .chip, .label, .section-label,
 .rail-btn:hover { background: var(--panel-2); color: var(--text); }
 .rail-btn[data-active='true'] { background: var(--accent-soft); color: var(--accent); }
 
+/*
+ * Short viewports — a landscape phone is ~375 px tall — cannot afford 40 px
+ * targets for eight rail items plus a logo. Keyed off height rather than width
+ * because that is the axis that actually runs out.
+ */
+@media (max-height: 560px) {
+  .nav-rail .rail-btn { width: 32px; height: 32px; border-radius: 9px; }
+  .nav-rail { gap: 2px; }
+}
+
+/* Hover tooltips are meaningless on touch and get stuck open after a tap. */
+@media (hover: none) {
+  .nav-rail .group > span { display: none; }
+}
+
+/* Scrollbars inside floating chrome: thin and unobtrusive rather than the
+   full-width platform bar, which on Windows ate most of a 44 px toolbar. */
+.nav-rail, .viewport-rail, .select-menu { scrollbar-width: thin; }
+.nav-rail::-webkit-scrollbar, .viewport-rail::-webkit-scrollbar, .select-menu::-webkit-scrollbar { width: 6px; height: 6px; }
+.nav-rail::-webkit-scrollbar-thumb, .viewport-rail::-webkit-scrollbar-thumb, .select-menu::-webkit-scrollbar-thumb {
+  background: var(--line-2); border-radius: 3px;
+}
+.nav-rail::-webkit-scrollbar-track, .viewport-rail::-webkit-scrollbar-track, .select-menu::-webkit-scrollbar-track { background: transparent; }
+
 .input, .textarea {
   width: 100%; border-radius: 10px; border: 1px solid var(--line);
   background: var(--panel); color: var(--text);

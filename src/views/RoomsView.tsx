@@ -283,10 +283,15 @@ export function RoomsView() {
       {/* ------------------------------------------------------------ topbar */}
       <header className="flex h-[54px] min-w-0 shrink-0 items-center gap-1.5 border-b hairline px-2 sm:gap-2 sm:px-3" style={{ background: 'var(--panel)' }}>
         {/* Site → room, so it is always clear which location you are editing. */}
-        <div className="flex min-w-0 shrink items-center gap-1.5">
-          <Building2 size={15} className="hidden shrink-0 muted sm:block" />
+        {/* Below `sm` there is not room for both halves of the breadcrumb without
+            the room name colliding with the buttons beside it. The site drops
+            out rather than being truncated to nothing — it is still switchable
+            from the Sites & rooms panel, and the room is what you actually
+            change while laying out. */}
+        <div className="hidden min-w-0 shrink items-center gap-1.5 sm:flex">
+          <Building2 size={15} className="shrink-0 muted" />
           <Select
-            className="w-[120px] font-medium sm:w-[150px] lg:w-[176px]"
+            className="w-[130px] font-medium lg:w-[176px]"
             value={activeSiteId ?? ''}
             onChange={setActiveSite}
             options={sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }))}
@@ -295,14 +300,14 @@ export function RoomsView() {
           />
         </div>
 
-        <span className="shrink-0 muted">/</span>
+        <span className="hidden shrink-0 muted sm:inline">/</span>
 
         {/* Room names run longer than site names ("RM-01 — Parts & Tool Room"),
-            so this one gets the extra width. */}
-        <div className="flex min-w-0 shrink items-center gap-1.5">
+            so this one gets the extra width — and all of it on a phone. */}
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:flex-none">
           <DoorOpen size={15} className="hidden shrink-0 muted sm:block" />
           <Select
-            className="w-[150px] font-medium sm:w-[200px] lg:w-[240px]"
+            className="w-full font-medium sm:w-[200px] lg:w-[240px]"
             value={room?.id ?? ''}
             onChange={setActiveRoom}
             options={siteRooms.map((r) => ({ value: r.id, label: `${r.code} — ${r.name}` }))}
@@ -320,8 +325,9 @@ export function RoomsView() {
 
         {/* Pushes the stats and the panel toggle to the right. A spacer rather
             than `ml-auto` on both: two auto margins split the free space between
-            them, which left the toggle floating in the middle of the bar. */}
-        <div className="min-w-0 flex-1" />
+            them, which left the toggle floating in the middle of the bar. On a
+            phone the room select already claims the slack, so this collapses. */}
+        <div className="hidden min-w-0 flex-1 sm:block" />
 
         {stats && (
           <span className="hidden shrink-0 items-center gap-3 text-[11.5px] muted xl:flex">
@@ -413,8 +419,17 @@ export function RoomsView() {
 
           <div className="flex-1" />
 
-          {/* right-hand viewport controls */}
-          <div className="flex min-h-0 flex-col items-end gap-1.5 overflow-y-auto p-2 sm:p-3">
+          {/*
+            Right-hand viewport controls.
+
+            The scrollable stack is the `pointer-events-auto` element, not the
+            column around it: a full-height column would turn a transparent
+            strip down the canvas edge into a click sink, while the stack only
+            covers the buttons themselves. It has to scroll because the toggle
+            group alone is taller than a landscape phone.
+          */}
+          <div className="flex min-h-0 flex-col items-end p-2 sm:p-3">
+            <div className="viewport-rail pointer-events-auto flex min-h-0 flex-col items-end gap-1.5 overflow-y-auto">
             <div className="float pointer-events-auto flex flex-col overflow-hidden">
               {([
                 { m: 'plan' as const, label: '2D', title: 'Top-down floor plan — true shape, no heights' },
@@ -463,12 +478,13 @@ export function RoomsView() {
               )}
             </div>
 
-            {/* Spacer pins the viewpoint buttons to the bottom of the viewport
-                regardless of how tall the control stack above it grows. */}
-            <div className="flex-1" />
+            {/* Pins the viewpoint buttons to the bottom when there is room to
+                spare. Suppressed once the stack scrolls, where a growing spacer
+                would just push them out of reach. */}
+            <div className="hidden flex-1 lg:block" />
 
             {viewMode !== 'plan' && (
-              <div className="float pointer-events-auto flex gap-1 p-1.5">
+              <div className="float flex shrink-0 gap-1 p-1.5">
                 {CAMERA_PRESETS.map((p, i) => (
                   <button
                     key={p.label}
@@ -483,6 +499,7 @@ export function RoomsView() {
                 ))}
               </div>
             )}
+            </div>
           </div>
         </div>
 
