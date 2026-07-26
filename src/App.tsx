@@ -3,6 +3,7 @@ import {
   Boxes, Database, LayoutDashboard, PackageSearch, ScrollText, Warehouse, BarChart3,
   Search, CheckCircle2, AlertTriangle, XCircle, Sun, Moon,
 } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import { useStore, type View } from './store'
 import { Dashboard } from './views/Dashboard'
 import { RoomsView } from './views/RoomsView'
@@ -130,6 +131,10 @@ export default function App() {
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <Toast />
+
+      {/* Inert off Vercel — the script is only injected on a Vercel deployment,
+          so local dev and any other host stay untouched. */}
+      <Analytics />
     </div>
   )
 }
