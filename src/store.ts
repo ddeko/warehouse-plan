@@ -66,6 +66,8 @@ interface Store extends AppData, UIState {
   setLeftPanel: (p: LeftPanel) => void
   toggleLeftPanel: (p: Exclude<LeftPanel, null>) => void
   setInspectorOpen: (b: boolean) => void
+  /** Flip the properties panel from the live store value, not a captured one. */
+  toggleInspector: () => void
   setDragInvalid: (b: boolean) => void
   notify: (msg: string, kind?: 'ok' | 'warn' | 'err') => void
   dismissToast: () => void
@@ -181,6 +183,18 @@ export const useStore = create<Store>()(
       setLeftPanel: (leftPanel) => set({ leftPanel }),
       toggleLeftPanel: (p) => set((s) => ({ leftPanel: s.leftPanel === p ? null : p })),
       setInspectorOpen: (inspectorOpen) => set({ inspectorOpen }),
+      /**
+       * Flip the panel from the current store value, never from a captured one.
+       *
+       * `onClick={() => setInspectorOpen(!inspectorOpen)}` reads whatever
+       * `inspectorOpen` was when that handler was created. If a click lands
+       * against a render that has not committed yet, it writes back the value
+       * it already has and the toggle silently does nothing — which is why the
+       * panel would refuse to reopen, and why it showed up in the 3D view,
+       * where every toggle resizes a WebGL canvas and renders are slow enough
+       * for the two to overlap.
+       */
+      toggleInspector: () => set((s) => ({ inspectorOpen: !s.inspectorOpen })),
       setDragInvalid: (dragInvalid) => set({ dragInvalid }),
       notify: (msg, kind = 'ok') => {
         const id = uid()

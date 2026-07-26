@@ -186,6 +186,7 @@ export function RoomsView() {
   const toggleLeftPanel = useStore((s) => s.toggleLeftPanel)
   const inspectorOpen = useStore((s) => s.inspectorOpen)
   const setInspectorOpen = useStore((s) => s.setInspectorOpen)
+  const toggleInspector = useStore((s) => s.toggleInspector)
   const removeRoom = useStore((s) => s.removeRoom)
   const autoArrange = useStore((s) => s.autoArrange)
   const moveContainer = useStore((s) => s.moveContainer)
@@ -338,7 +339,7 @@ export function RoomsView() {
         )}
         <button
           className={cx('btn btn-sm btn-icon shrink-0', inspectorOpen && 'btn-active')}
-          onClick={() => setInspectorOpen(!inspectorOpen)}
+          onClick={toggleInspector}
           title={inspectorOpen ? 'Hide properties panel' : 'Show properties panel'}
           aria-pressed={inspectorOpen}
         >
@@ -428,7 +429,9 @@ export function RoomsView() {
             covers the buttons themselves. It has to scroll because the toggle
             group alone is taller than a landscape phone.
           */}
-          <div className="flex min-h-0 flex-col items-end p-2 sm:p-3">
+          {/* Bottom padding reserves the strip the viewpoint buttons occupy, so
+              the scrolling stack stops above them instead of running underneath. */}
+          <div className="flex min-h-0 flex-col items-end p-2 pb-14 sm:p-3 sm:pb-16">
             <div className="viewport-rail pointer-events-auto flex min-h-0 flex-col items-end gap-1.5 overflow-y-auto">
             <div className="float pointer-events-auto flex flex-col overflow-hidden">
               {([
@@ -478,29 +481,35 @@ export function RoomsView() {
               )}
             </div>
 
-            {/* Pins the viewpoint buttons to the bottom when there is room to
-                spare. Suppressed once the stack scrolls, where a growing spacer
-                would just push them out of reach. */}
-            <div className="hidden flex-1 lg:block" />
-
-            {viewMode !== 'plan' && (
-              <div className="float flex shrink-0 gap-1 p-1.5">
-                {CAMERA_PRESETS.map((p, i) => (
-                  <button
-                    key={p.label}
-                    className={cx('h-7 w-8 rounded-lg text-[10.5px] font-bold transition-colors',
-                      cameraPreset === i ? 'text-[var(--accent)]' : 'muted hover:bg-[var(--panel-2)]')}
-                    style={cameraPreset === i ? { background: 'var(--accent-soft)' } : undefined}
-                    onClick={() => setCameraPreset(i)}
-                    title={`View from ${p.label}`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            )}
             </div>
           </div>
+
+          {/*
+            Viewpoint buttons, pinned to the bottom-right of the canvas.
+
+            Deliberately outside the scrolling toolbar stack. Inside it they
+            rode up and down with however many toggles happened to be showing,
+            and a flex spacer only pins them while there is slack to absorb —
+            the moment the stack overflowed they were pushed off instead.
+            Anchoring to the viewport edge is the only thing that holds at
+            every height.
+          */}
+          {viewMode !== 'plan' && (
+            <div className="float pointer-events-auto absolute bottom-2 right-2 flex gap-1 p-1.5 sm:bottom-3 sm:right-3">
+              {CAMERA_PRESETS.map((p, i) => (
+                <button
+                  key={p.label}
+                  className={cx('h-7 w-8 rounded-lg text-[10.5px] font-bold transition-colors',
+                    cameraPreset === i ? 'text-[var(--accent)]' : 'muted hover:bg-[var(--panel-2)]')}
+                  style={cameraPreset === i ? { background: 'var(--accent-soft)' } : undefined}
+                  onClick={() => setCameraPreset(i)}
+                  title={`View from ${p.label}`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Hint strip. `whitespace-nowrap` matters: a centred absolute element is
@@ -556,19 +565,6 @@ export function RoomsView() {
           </aside>
         )}
 
-        {/* Second way back in. The header toggle is a 28 px target in the far
-            corner; this tab is pinned to the edge the panel came from, so the
-            panel is never one unlucky click away from being unreachable. */}
-        {!inspectorOpen && (
-          <button
-            className="absolute right-0 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1 rounded-l-xl border border-r-0 hairline px-1.5 py-3 text-[11px] muted shadow-md"
-            style={{ background: 'var(--panel)' }}
-            onClick={() => setInspectorOpen(true)}
-            title="Show properties panel"
-          >
-            <PanelRight size={14} />
-          </button>
-        )}
       </div>
 
       <RoomForm open={roomFormOpen} onClose={() => setRoomFormOpen(false)} room={editRoom} />
