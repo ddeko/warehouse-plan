@@ -1,6 +1,16 @@
+/**
+ * Spreadsheets treat a cell opening with `= + - @` (or a leading tab/CR) as a
+ * formula, so an item named `=1+1` — or something considerably less playful
+ * pointing at an external URL — executes the moment an export is opened in
+ * Excel or Sheets. Prefixing an apostrophe is the standard defusal: the cell
+ * displays as typed and is inert. Only applied where it is needed, so ordinary
+ * text and negative numbers round-trip untouched.
+ */
+const defuse = (s: string): string => (/^[=+\-@\t\r]/.test(s) && Number.isNaN(Number(s)) ? `'${s}` : s)
+
 const escape = (v: unknown): string => {
   if (v === null || v === undefined) return ''
-  const s = String(v)
+  const s = defuse(String(v))
   return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 

@@ -3,7 +3,7 @@ import { RefreshCw, Trash2 } from 'lucide-react'
 import type { Item, ItemStatus, Uom } from '../types'
 import { ITEM_STATUSES, UOMS } from '../types'
 import { useStore } from '../store'
-import { Modal, NumberField, Select, SelectField, TextField, Field } from './ui'
+import { Confirm, Modal, NumberField, Select, SelectField, TextField, Field } from './ui'
 import { Barcode } from './Barcode'
 import { generateBarcode, todayISO } from '../lib/utils'
 
@@ -40,6 +40,7 @@ export function ItemForm({ open, onClose, item, containerId }: Props) {
 
   const [draft, setDraft] = useState<Partial<Item>>(blank)
   const [tagText, setTagText] = useState('')
+  const [confirmDel, setConfirmDel] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -65,7 +66,9 @@ export function ItemForm({ open, onClose, item, containerId }: Props) {
   }, [rooms, containers])
 
   const save = () => {
-    const tags = tagText.split(',').map((t) => t.trim()).filter(Boolean)
+    // Deduped: the tag list is keyed by value when rendered, so "fragile,
+    // fragile" produced duplicate React keys.
+    const tags = [...new Set(tagText.split(',').map((t) => t.trim()).filter(Boolean))]
     const target = draft.containerId || containerId
     if (!target) return
     if (item) {
@@ -91,15 +94,18 @@ export function ItemForm({ open, onClose, item, containerId }: Props) {
       footer={
         <>
           {item && (
-            <button
-              className="btn btn-danger mr-auto"
-              onClick={() => { removeItem(item.id); onClose() }}
-            >
+            // Confirmed, like every other destructive action in the app. It
+            // sits one button away from Cancel and there is no undo.
+            <button className="btn btn-danger mr-auto" onClick={() => setConfirmDel(true)}>
               <Trash2 size={13} /> Delete line
             </button>
           )}
           <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={save} disabled={!draft.name || !(draft.containerId || containerId)}>
+          <button
+            className="btn btn-primary"
+            onClick={save}
+            disabled={!draft.name?.trim() || !(draft.containerId || containerId)}
+          >
             {item ? 'Save changes' : 'Add item'}
           </button>
         </>
@@ -176,6 +182,17 @@ export function ItemForm({ open, onClose, item, containerId }: Props) {
           <textarea className="textarea" value={draft.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
         </Field>
       </div>
+
+      {item && (
+        <Confirm
+          open={confirmDel}
+          onClose={() => setConfirmDel(false)}
+          onConfirm={() => { removeItem(item.id); onClose() }}
+          title="Delete this stock line?"
+          message={`${item.sku} — ${item.name}. The quantity is written off and recorded in the movement history.`}
+          confirmLabel="Delete line"
+        />
+      )}
     </Modal>
   )
 }

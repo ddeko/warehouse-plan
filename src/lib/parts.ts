@@ -35,7 +35,17 @@ const M = (cm: number) => cm / 100
  * looking like a gap at every size. The proportional floor only kicks in for
  * objects small enough that a fixed margin would swallow them.
  */
-const inset = (span: number, margin = 0.06) => Math.max(span * 0.5, span - margin * 2)
+const inset = (span: number, margin = 0.06) => Math.max(0, Math.max(span * 0.5, span - margin * 2))
+
+/**
+ * Clamp a derived extent to something a renderer can actually draw.
+ *
+ * Several part sizes are a span minus fixed hardware — posts, padding, wheels
+ * — which goes negative once the object is smaller than the hardware itself.
+ * A container may legally be 1 cm on a side, and a negative `BoxGeometry`
+ * extent renders inside-out in three.js and as an invalid attribute in SVG.
+ */
+const extent = (v: number, min = 0.005) => (Number.isFinite(v) && v > min ? v : min)
 
 /** Evenly spaced positions across a span, inclusive of both ends. */
 function spread(span: number, thickness: number, count: number): number[] {
@@ -44,9 +54,26 @@ function spread(span: number, thickness: number, count: number): number[] {
   return Array.from({ length: count }, (_, i) => -usable / 2 + (i / (count - 1)) * usable)
 }
 
-/** Assemble a piece of furniture from a handful of blocks. Deliberately coarse:
- *  the cartoon read comes from clean silhouettes, not from detail. */
+/**
+ * Assemble a piece of furniture from a handful of blocks. Deliberately coarse:
+ * the cartoon read comes from clean silhouettes, not from detail.
+ *
+ * Sizes are clamped on the way out rather than at each of the forty-odd push
+ * sites. Most part dimensions are a span minus fixed hardware — posts, door
+ * padding, wheels, lids — and every one of them goes negative once the object
+ * is smaller than the hardware it subtracts. A container may legally be 1 cm
+ * on a side, and a negative extent renders inside-out in three.js and as an
+ * invalid attribute in SVG. Catching it here means a new part added later
+ * cannot reintroduce the bug.
+ */
 export function buildParts(c: Container, fill: number): Part[] {
+  return buildPartsRaw(c, fill).map((part) => ({
+    ...part,
+    s: [extent(part.s[0]), extent(part.s[1]), extent(part.s[2])],
+  }))
+}
+
+function buildPartsRaw(c: Container, fill: number): Part[] {
   const w = M(c.w)
   const h = M(c.h)
   const d = M(c.d)
@@ -156,15 +183,15 @@ export function buildParts(c: Container, fill: number): Part[] {
       const gap = 0.012
       const pad = 0.045
       const doorD = 0.035
-      const doorH = h - pad * 2
+      const doorH = extent(h - pad * 2)
       if (twoDoors) {
-        const dw = (w - pad * 2 - gap) / 2
+        const dw = extent((w - pad * 2 - gap) / 2)
         parts.push({ p: [-(dw + gap) / 2, h / 2, d / 2], s: [dw, doorH, doorD], tone: 'trim', outline: true })
         parts.push({ p: [(dw + gap) / 2, h / 2, d / 2], s: [dw, doorH, doorD], tone: 'trim', outline: true })
         parts.push({ p: [-0.055, h * 0.5, d / 2 + 0.03], s: [0.022, h * 0.16, 0.03], tone: 'glass' })
         parts.push({ p: [0.055, h * 0.5, d / 2 + 0.03], s: [0.022, h * 0.16, 0.03], tone: 'glass' })
       } else {
-        parts.push({ p: [0, h / 2, d / 2], s: [w - pad * 2, doorH, doorD], tone: 'trim', outline: true })
+        parts.push({ p: [0, h / 2, d / 2], s: [extent(w - pad * 2), doorH, doorD], tone: 'trim', outline: true })
         parts.push({ p: [w / 2 - 0.12, h * 0.5, d / 2 + 0.03], s: [0.024, h * 0.2, 0.032], tone: 'glass' })
       }
       if (c.type === 'fridge' || c.type === 'freezer') {
@@ -181,17 +208,29 @@ export function buildParts(c: Container, fill: number): Part[] {
     case 'bin':
     case 'drum':
     case 'tank': {
-      const r = Math.min(w, d)
-      parts.push({ p: [0, h / 2, 0], s: [r, h, r], outline: true, round: true })
-      parts.push({ p: [0, h - 0.025, 0], s: [r * 1.06, 0.05, r * 1.06], tone: 'trim', round: true, outline: true })
+      /*
+       * Elliptical, filling the object's actual footprint.
+       *
+       * Squaring it off at `min(w, d)` meant a tank resized to 150×100 drew a
+       * 100 cm circle while still blocking the full 150×100 rectangle — half a
+       * metre of floor that looked empty and refused every drop. Both
+       * renderers scale a round part per-axis, so the drawn shape is now the
+       * ellipse inscribed in the collision box.
+       */
+      parts.push({ p: [0, h / 2, 0], s: [w, h, d], outline: true, round: true })
+      parts.push({ p: [0, h - 0.025, 0], s: [w * 1.06, 0.05, d * 1.06], tone: 'trim', round: true, outline: true })
       if (c.type === 'drum') {
-        parts.push({ p: [0, h * 0.36, 0], s: [r * 1.05, 0.045, r * 1.05], tone: 'trim', round: true })
-        parts.push({ p: [0, h * 0.68, 0], s: [r * 1.05, 0.045, r * 1.05], tone: 'trim', round: true })
+        parts.push({ p: [0, h * 0.36, 0], s: [w * 1.05, 0.045, d * 1.05], tone: 'trim', round: true })
+        parts.push({ p: [0, h * 0.68, 0], s: [w * 1.05, 0.045, d * 1.05], tone: 'trim', round: true })
       }
       if (load > 0.02) {
         const ch = load * (h - 0.1)
-        const gr = inset(r, 0.045)
-        parts.push({ p: [0, ch / 2 + 0.03, 0], s: [gr, ch, gr], tone: 'goods', round: true })
+        parts.push({
+          p: [0, ch / 2 + 0.03, 0],
+          s: [extent(inset(w, 0.045)), ch, extent(inset(d, 0.045))],
+          tone: 'goods',
+          round: true,
+        })
       }
       return parts
     }
@@ -202,7 +241,7 @@ export function buildParts(c: Container, fill: number): Part[] {
       parts.push({ p: [0, wheel + 0.03, 0], s: [w, 0.06, d], tone: 'trim', outline: true })
       for (const px of [-w / 2 + post / 2, w / 2 - post / 2]) {
         for (const pz of [-d / 2 + post / 2, d / 2 - post / 2]) {
-          parts.push({ p: [px, wheel + (h - wheel) / 2, pz], s: [post, h - wheel, post], outline: true })
+          parts.push({ p: [px, wheel + (h - wheel) / 2, pz], s: [post, extent(h - wheel), post], outline: true })
         }
       }
       for (const t of [0.45, 0.75]) {
@@ -212,7 +251,7 @@ export function buildParts(c: Container, fill: number): Part[] {
         const gh = (h - wheel) * load * 0.8
         parts.push({
           p: [0, wheel + 0.06 + gh / 2, 0],
-          s: [inset(w - post * 2, 0.04), Math.max(0.08, gh), inset(d - post * 2, 0.04)],
+          s: [extent(inset(w - post * 2, 0.04)), Math.max(0.08, gh), extent(inset(d - post * 2, 0.04))],
           tone: 'goods',
           outline: true,
         })

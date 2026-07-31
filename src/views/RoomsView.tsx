@@ -5,7 +5,7 @@ import {
   Building2, DoorOpen,
 } from 'lucide-react'
 import type { Room } from '../types'
-import { CONTAINER_META } from '../types'
+import { containerMeta } from '../types'
 import { useStore, containerStats } from '../store'
 import { PlanScene } from '../svg/PlanScene'
 import { CAMERA_PRESETS } from '../lib/viewpoints'
@@ -144,7 +144,7 @@ function ObjectsPanel({ roomId, onClose }: { roomId: string; onClose: () => void
                     {c.code} · {fmtLen(c.w, units, false)}×{fmtLen(c.d, units, false)}×{fmtLen(c.h, units, false)}
                   </span>
                 </span>
-                {!CONTAINER_META[c.type].obstacle && (
+                {!containerMeta(c.type).obstacle && (
                   <span className="w-10 shrink-0">
                     <span className="mb-0.5 block text-right text-[9.5px] tabular-nums muted">{Math.round(st.fill * 100)}%</span>
                     <Bar ratio={st.fill} height={3} />
@@ -225,8 +225,26 @@ export function RoomsView() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement
-      if (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return
+      /*
+       * These shortcuts mutate the selected object, so anything that could be
+       * "typing" has to win first.
+       *
+       * Tag names alone were not enough. The app's Select is a
+       * `<button role="combobox">`, not a native `<select>`, and it calls
+       * `preventDefault` without stopping propagation — so arrowing through
+       * the Type dropdown also slid the shelf behind it one grid step per
+       * press, and Delete removed it outright with no undo. `isEditable`
+       * covers the listbox, contenteditable, and anything inside an open
+       * dialog, which is by definition not the floor plan.
+       */
+      const el = e.target as HTMLElement | null
+      const isEditable =
+        !!el && (
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ||
+          el.isContentEditable ||
+          !!el.closest('[role="combobox"], [role="listbox"], [role="dialog"]')
+        )
+      if (isEditable || e.defaultPrevented) return
       if (!selected) {
         if (e.key === 'Escape') selectContainer(null)
         return

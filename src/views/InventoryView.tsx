@@ -79,7 +79,10 @@ export function InventoryView() {
         case 'value': return (val(a) - val(b)) * dir
         case 'category': return a.category.localeCompare(b.category) * dir
         case 'location': return locate(a.containerId).label.localeCompare(locate(b.containerId).label) * dir
-        case 'expiry': return ((a.expiryAt ?? '9999').localeCompare(b.expiryAt ?? '9999')) * dir
+        // Clearing a date input stores '', not undefined, so the two "no
+        // expiry" states used to sort to opposite ends of the table. Treat
+        // both as "no date" and park them last.
+        case 'expiry': return ((a.expiryAt || '9999').localeCompare(b.expiryAt || '9999')) * dir
         default: return (a.updatedAt - b.updatedAt) * dir
       }
     })
@@ -230,9 +233,19 @@ export function InventoryView() {
             <thead>
               <tr>
                 <th className="w-8">
+                  {/* Measured against the rows on screen, not the raw
+                      selection — which survives filter changes, so ticking
+                      three rows and then filtering to three different ones
+                      showed a checked box above an empty column. */}
                   <input
                     type="checkbox"
-                    checked={selection.size > 0 && selection.size === filtered.length}
+                    checked={filtered.length > 0 && filtered.every((i) => selection.has(i.id))}
+                    ref={(el) => {
+                      if (el) {
+                        const some = filtered.some((i) => selection.has(i.id))
+                        el.indeterminate = some && !filtered.every((i) => selection.has(i.id))
+                      }
+                    }}
                     onChange={(e) => setSelection(e.target.checked ? new Set(filtered.map((i) => i.id)) : new Set())}
                   />
                 </th>
@@ -241,7 +254,7 @@ export function InventoryView() {
                 {th('category', 'Category')}
                 <th>Status</th>
                 {th('qty', 'Qty', 'num')}
-                <th className="num">Value</th>
+                {th('value', 'Value', 'num')}
                 {th('location', 'Location')}
                 {th('expiry', 'Expiry')}
                 <th className="w-8" />
@@ -272,7 +285,17 @@ export function InventoryView() {
                     </td>
                     <td className="muted">{i.category}</td>
                     <td>
-                      <span className="chip" style={{ color: status?.color, borderColor: `${status?.color}55` }}>{status?.label}</span>
+                      {/* An unrecognised status used to render an empty chip
+                          outlined in the literal string "undefined55". */}
+                      <span
+                        className="chip"
+                        style={{
+                          color: status?.color ?? 'var(--muted)',
+                          borderColor: status ? `${status.color}55` : 'var(--line)',
+                        }}
+                      >
+                        {status?.label ?? i.status}
+                      </span>
                     </td>
                     <td className={cx('num tabular-nums', low && 'text-amber-400')}>
                       {fmtNum(i.qty)} <span className="text-[10px] muted">{i.uom}</span>

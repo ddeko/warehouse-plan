@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Download, Printer } from 'lucide-react'
 import { useStore, containerStats } from '../store'
-import { CONTAINER_META } from '../types'
+import { containerMeta } from '../types'
 import { Bar, Empty, SectionTitle, Stat } from '../components/ui'
 import { toCSV } from '../lib/csv'
 import { areaM2, cx, download, fmtMoney, fmtNum, volM3 } from '../lib/utils'
@@ -54,7 +54,15 @@ export function ReportsView() {
       const rows = lines.filter(({ i }) => {
         if (!i.receivedAt) return b.min === -1
         if (b.min === -1) return false
-        const age = Math.floor((now - new Date(i.receivedAt).getTime()) / 86_400_000)
+        const parsed = new Date(i.receivedAt).getTime()
+        if (Number.isNaN(parsed)) return b.min === -1
+        /*
+         * A received date in the future gives a negative age, which fell
+         * through every bucket — the line vanished from the report and the
+         * totals silently stopped reconciling with the inventory screen.
+         * Future receipts are newest, so they belong in the first bucket.
+         */
+        const age = Math.max(0, Math.floor((now - parsed) / 86_400_000))
         return age >= b.min && age <= b.max
       })
       return {
@@ -226,6 +234,14 @@ export function ReportsView() {
                   ))}
                 </tbody>
               </table>
+              {/* The class cards and the CSV export both use the whole list,
+                  so a silent cut here made the table look complete when it
+                  was not. Say what is missing. */}
+              {abc.length > 200 && (
+                <p className="border-t hairline px-3 py-2 text-[11px] muted">
+                  Showing the top 200 of {fmtNum(abc.length)} lines by value. Export the CSV for the full list.
+                </p>
+              )}
             </div>
           </>
         )}
@@ -266,7 +282,7 @@ export function ReportsView() {
                     {r.rows.map(({ c, st }) => (
                       <tr key={c.id}>
                         <td><span className="mono">{c.code}</span> <span className="muted">{c.name}</span></td>
-                        <td className="muted">{CONTAINER_META[c.type].label}</td>
+                        <td className="muted">{containerMeta(c.type).label}</td>
                         <td className="mono muted">{c.w}×{c.d}×{c.h}</td>
                         <td className="num tabular-nums muted">{((c.w * c.d) / 10000).toFixed(2)} m²</td>
                         <td className="num tabular-nums">{st.usedSlots}/{c.capacity}</td>

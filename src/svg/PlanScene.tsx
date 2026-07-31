@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Container, Item, Room, Settings } from '../types'
-import { CONTAINER_META } from '../types'
+import { containerMeta } from '../types'
 import { useStore } from '../store'
 import { buildParts, type Part } from '../lib/parts'
 import { footprint, snap } from '../lib/geometry'
@@ -78,7 +78,7 @@ interface ObjProps {
 const PlanObject = memo(function PlanObject({
   container: c, fill, count, view, selected, hovered, revealed, showLabel, showBadge, onPick, onHover, onOpen,
 }: ObjProps) {
-  const meta = CONTAINER_META[c.type]
+  const meta = containerMeta(c.type)
   const stroke = selected ? INK_SELECTED : INK
   const base = hovered && !selected ? shade(c.color, -0.06) : c.color
 

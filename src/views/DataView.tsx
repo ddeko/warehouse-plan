@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react'
-import { Database, Download, FileUp, RotateCcw, Sparkles, Upload, HardDrive } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Database, Download, FileUp, GraduationCap, RotateCcw, Sparkles, Upload, HardDrive } from 'lucide-react'
 import type { AppData, Units } from '../types'
 import { useStore, DEFAULT_SETTINGS } from '../store'
 import { Confirm, NumberField, Select, SelectField, SectionTitle, TextField, Toggle } from '../components/ui'
 import { parseCSV, toCSV } from '../lib/csv'
+import { CURRENCIES, currencySymbol } from '../lib/currencies'
 import { download, fmtNum, generateBarcode, uid } from '../lib/utils'
 
 export function DataView() {
@@ -18,6 +19,7 @@ export function DataView() {
   const containers = useStore((s) => s.containers)
   const items = useStore((s) => s.items)
   const movements = useStore((s) => s.movements)
+  const setTourOpen = useStore((s) => s.setTourOpen)
 
   const jsonInput = useRef<HTMLInputElement>(null)
   const csvInput = useRef<HTMLInputElement>(null)
@@ -25,6 +27,23 @@ export function DataView() {
   const [importMode, setImportMode] = useState<'replace' | 'merge'>('replace')
 
   const bytes = new Blob([JSON.stringify(exportData())]).size
+
+  /*
+   * A code saved before this was a dropdown — or restored from an older
+   * backup — will not be in the list, and an unmatched value renders as the
+   * placeholder, which reads as "nothing set" while the reports carry on using
+   * it. Carry the stray code as its own option so the control stays honest.
+   */
+  const currencyOptions = useMemo(() => {
+    const known = CURRENCIES.map((c) => {
+      const symbol = currencySymbol(c.code)
+      return { value: c.code, label: `${c.code} — ${c.name}`, hint: symbol, group: c.region }
+    })
+    if (settings.currency && !CURRENCIES.some((c) => c.code === settings.currency)) {
+      known.unshift({ value: settings.currency, label: settings.currency, hint: '', group: 'Current' })
+    }
+    return known
+  }, [settings.currency])
 
   const doExportJson = () => {
     download(
@@ -52,23 +71,35 @@ export function DataView() {
       if (!rows.length) throw new Error('empty file')
       const byCode = new Map(containers.map((c) => [c.code.toLowerCase(), c]))
       const add = useStore.getState().addItem
+      /** `Number('')` is 0 and `Number('abc')` is NaN — both used to be stored. */
+      const optionalNum = (v: string | undefined) => {
+        if (!v || !v.trim()) return undefined
+        const n = Number(v)
+        return Number.isFinite(n) ? n : undefined
+      }
       let ok = 0
       let skipped = 0
+      let rehomed = 0
       for (const r of rows) {
         const code = (r.container || r.container_code || r.location || '').toLowerCase()
-        const target = byCode.get(code) ?? containers[0]
+        const matched = byCode.get(code)
+        // Falling back to the first object keeps a partly-wrong file usable,
+        // but doing it silently meant a mistyped column piled the entire
+        // import onto one shelf under a cheerful success message.
+        const target = matched ?? containers[0]
         if (!target) { skipped++; continue }
+        if (!matched) rehomed++
         add(target.id, {
           sku: r.sku || `IMP-${uid().slice(0, 6).toUpperCase()}`,
           barcode: r.barcode || generateBarcode(),
           name: r.name || r.item || 'Imported item',
           category: r.category || 'General',
-          qty: Number(r.qty || r.quantity || 0) || 0,
+          qty: Math.max(0, optionalNum(r.qty ?? r.quantity) ?? 0),
           uom: (r.uom || 'pcs') as never,
-          slots: Number(r.slots || 1) || 1,
-          unitCost: r.unit_cost ? Number(r.unit_cost) : undefined,
-          unitWeightKg: r.unit_weight_kg ? Number(r.unit_weight_kg) : undefined,
-          minQty: r.min_qty ? Number(r.min_qty) : undefined,
+          slots: Math.max(0, optionalNum(r.slots) ?? 1),
+          unitCost: optionalNum(r.unit_cost),
+          unitWeightKg: optionalNum(r.unit_weight_kg),
+          minQty: optionalNum(r.min_qty),
           lot: r.lot || undefined,
           serial: r.serial || undefined,
           supplier: r.supplier || undefined,
@@ -80,7 +111,14 @@ export function DataView() {
         })
         ok++
       }
-      notify(`Imported ${ok} lines${skipped ? `, skipped ${skipped}` : ''}`)
+      const notes = [
+        skipped && `skipped ${skipped}`,
+        rehomed && `${rehomed} had no matching object code and went to ${containers[0]?.code}`,
+      ].filter(Boolean)
+      notify(
+        `Imported ${ok} lines${notes.length ? ` — ${notes.join(', ')}` : ''}`,
+        rehomed ? 'warn' : 'ok',
+      )
     } catch (e) {
       notify(`CSV import failed: ${(e as Error).message}`, 'err')
     }
@@ -128,7 +166,13 @@ export function DataView() {
               options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]}
             />
             <TextField label="Operator name" value={settings.operator} onChange={(v) => updateSettings({ operator: v })} hint="Stamped on every movement" />
-            <TextField label="Currency code" value={settings.currency} onChange={(v) => updateSettings({ currency: v.toUpperCase() })} mono />
+            <SelectField
+              label="Currency"
+              value={settings.currency}
+              onChange={(v) => updateSettings({ currency: v })}
+              options={currencyOptions}
+              hint="Used for stock value across the dashboard and reports"
+            />
             <NumberField label="Expiry warning" suffix="days" min={0} value={settings.expiryWarnDays} onChange={(v) => updateSettings({ expiryWarnDays: Math.max(0, Math.round(v)) })} />
             <NumberField label="Wall clearance" suffix="cm" min={0} step={5} value={settings.wallClearance} onChange={(v) => updateSettings({ wallClearance: Math.max(0, v) })} hint="Keeps objects away from room edges" />
           </div>
@@ -217,6 +261,9 @@ export function DataView() {
             <SectionTitle>Demo &amp; reset</SectionTitle>
             <div className="flex flex-wrap gap-1.5">
               <button className="btn" onClick={loadSample}><Sparkles size={13} /> Load sample warehouse</button>
+              {/* The tour runs itself once on a first visit, so this is the only
+                  way back to it afterwards. */}
+              <button className="btn" onClick={() => setTourOpen(true)}><GraduationCap size={13} /> Replay guided tour</button>
               <button className="btn btn-danger" onClick={() => setConfirmReset(true)}><Database size={13} /> Delete all data</button>
             </div>
             <p className="mt-2 text-[11px] muted">Loading the sample replaces the current rooms, objects, items and history.</p>

@@ -240,20 +240,39 @@ export function NumberField({
   disabled?: boolean
   className?: string
 }) {
+  /*
+   * Edits are held locally until blur or Enter. Committing per keystroke means
+   * an empty box reads as 0 the instant it is cleared to be retyped, and any
+   * caller that clamps or converts the value writes its correction straight
+   * back into the field — which makes decimals impossible to type.
+   */
+  const [draft, setDraft] = useState<string | null>(null)
+  const shown = draft ?? String(Number.isFinite(value) ? value : 0)
+
+  const commit = () => {
+    if (draft === null) return
+    const n = Number(draft)
+    setDraft(null)
+    if (draft.trim() === '' || Number.isNaN(n)) return
+    if (n !== value) onChange(n)
+  }
+
   return (
     <Field label={label} hint={hint} className={className}>
       <div className="relative">
         <input
           type="number"
           className="input pr-9"
-          value={Number.isFinite(value) ? value : 0}
+          value={shown}
           min={min}
           max={max}
           step={step}
           disabled={disabled}
-          onChange={(e) => {
-            const n = Number(e.target.value)
-            if (!Number.isNaN(n)) onChange(n)
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commit() }
+            if (e.key === 'Escape') { e.preventDefault(); setDraft(null) }
           }}
         />
         {suffix && (
@@ -295,7 +314,8 @@ export function SelectField<T extends string>({
   label: string
   value: T
   onChange: (v: T) => void
-  options: { value: T; label: string }[]
+  /** Full option shape — `hint` and `group` reach `Select` unchanged. */
+  options: SelectOption<T>[]
   hint?: string
   disabled?: boolean
   className?: string

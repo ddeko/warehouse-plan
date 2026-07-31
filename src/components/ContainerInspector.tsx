@@ -4,7 +4,7 @@ import {
   PackagePlus, ArrowLeftRight,
 } from 'lucide-react'
 import type { Container, ContainerType, Item } from '../types'
-import { CONTAINER_TYPES, CONTAINER_META, ITEM_STATUSES } from '../types'
+import { CONTAINER_TYPES, containerMeta, ITEM_STATUSES } from '../types'
 import { useStore, containerStats } from '../store'
 import { Bar, Confirm, Field, Select, SelectField, TextField, Toggle, Empty } from './ui'
 import { ItemForm } from './ItemForm'
@@ -17,7 +17,17 @@ const SWATCHES = [
   '#9fe0cd', '#bfdfae', '#f0d9b5', '#d6dfec', '#e7ddd0',
 ]
 
-/** Compact numeric input with a unit chip, matching a CAD property sheet. */
+/**
+ * Compact numeric input with a unit chip, matching a CAD property sheet.
+ *
+ * Holds a draft while focused and only commits on blur or Enter. Writing
+ * straight through on every keystroke made the fields hostile to edit: to
+ * retype a width you first clear it, `Number('')` is 0, and the object
+ * collapsed to the 1 cm floor and was often relocated by the re-placement
+ * pass before the second digit arrived. In metres it was worse — "1.2" was
+ * destroyed at the decimal point, because the committed 1 came straight back
+ * through the cm round-trip as "0.01".
+ */
 function Num({
   label, value, onChange, suffix, step = 1, min, max, disabled,
 }: {
@@ -30,6 +40,18 @@ function Num({
   max?: number
   disabled?: boolean
 }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const shown = draft ?? String(Number.isFinite(value) ? value : 0)
+
+  const commit = () => {
+    if (draft === null) return
+    const n = Number(draft)
+    setDraft(null)
+    // An empty or unparseable box reverts rather than committing a zero.
+    if (draft.trim() === '' || Number.isNaN(n)) return
+    if (n !== value) onChange(n)
+  }
+
   return (
     <div>
       <label className="label">{label}</label>
@@ -37,14 +59,16 @@ function Num({
         <input
           type="number"
           className="input pr-9"
-          value={Number.isFinite(value) ? value : 0}
+          value={shown}
           step={step}
           min={min}
           max={max}
           disabled={disabled}
-          onChange={(e) => {
-            const n = Number(e.target.value)
-            if (!Number.isNaN(n)) onChange(n)
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commit() }
+            if (e.key === 'Escape') { e.preventDefault(); setDraft(null) }
           }}
         />
         {suffix && <span className="field-unit">{suffix}</span>}
@@ -81,7 +105,7 @@ export function ContainerInspector({ container }: { container: Container }) {
   const [labelsOpen, setLabelsOpen] = useState(false)
   const [transferFor, setTransferFor] = useState<Item | null>(null)
 
-  const meta = CONTAINER_META[container.type]
+  const meta = containerMeta(container.type)
   const room = rooms.find((r) => r.id === container.roomId)
   const stats = useMemo(() => containerStats(allItems, container), [allItems, container])
   const valid = isPlacementValid(container)
@@ -148,7 +172,7 @@ export function ContainerInspector({ container }: { container: Container }) {
             label="Type"
             value={container.type}
             onChange={(v: ContainerType) => {
-              const m = CONTAINER_META[v]
+              const m = containerMeta(v)
               updateContainer(container.id, {
                 type: v, color: m.color, levels: m.levels ?? 1, capacity: m.capacity ?? 10,
                 w: m.size[0], d: m.size[1], h: m.size[2], tempC: m.tempC,
@@ -267,8 +291,12 @@ export function ContainerInspector({ container }: { container: Container }) {
         </div>
       )}
 
-      {/* -------------------------------------------------------------- items */}
-      {tab === 'items' && (
+      {/* -------------------------------------------------------------- items
+          Gated on the object being storable, not just on the tab. Only the tab
+          *button* was disabled, so selecting a shelf, switching to Items and
+          then clicking a pillar left a working "add item" panel open on a
+          structural column — and the item saved. */}
+      {tab === 'items' && !meta.obstacle && (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="space-y-2 border-b hairline p-3">
             <div className="grid grid-cols-4 gap-2 text-center">

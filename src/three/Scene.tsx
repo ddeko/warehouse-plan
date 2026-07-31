@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { Container, Item, Room, Settings } from '../types'
-import { CONTAINER_META } from '../types'
+import { containerMeta } from '../types'
 import { ContainerMesh } from './ContainerMesh'
 import { INK, NO_RAYCAST, OUTLINE, UNIT_BOX, UNIT_BOX_EDGES, lineMaterial, outlineMaterial, toonMaterial } from './toon'
 import { footprint, snap } from '../lib/geometry'
@@ -492,7 +492,7 @@ function SceneContent({
             revealed={revealedId === c.id}
             invalid={false}
             showLabel={settings.showLabels}
-            showBadge={settings.showFillBadges && !CONTAINER_META[c.type].obstacle}
+            showBadge={settings.showFillBadges && !containerMeta(c.type).obstacle}
             onPointerDown={startDrag(c)}
             onPointerOver={(e) => { e.stopPropagation(); setHoveredId(c.id); gl.domElement.style.cursor = c.locked ? 'not-allowed' : 'grab' }}
             onPointerOut={() => { setHoveredId(null); if (!drag.current) gl.domElement.style.cursor = '' }}

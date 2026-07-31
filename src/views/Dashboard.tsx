@@ -5,8 +5,8 @@ import {
 } from 'lucide-react'
 import { useStore, containerStats } from '../store'
 import { Bar, Empty, Stat, SectionTitle } from '../components/ui'
-import { CONTAINER_META, ITEM_STATUSES } from '../types'
-import { areaM2, cx, daysUntil, fmtDateTime, fmtMoney, fmtNum } from '../lib/utils'
+import { containerMeta, ITEM_STATUSES } from '../types'
+import { areaM2, cx, daysUntil, fmtDateTime, fmtLen, fmtMoney, fmtNum } from '../lib/utils'
 import { usedFloorArea } from '../lib/geometry'
 import { describeLocation } from '../lib/movements'
 
@@ -26,7 +26,7 @@ export function Dashboard() {
     const qty = items.reduce((n, i) => n + i.qty, 0)
     const value = items.reduce((n, i) => n + (i.unitCost ?? 0) * i.qty, 0)
     const weight = items.reduce((n, i) => n + (i.unitWeightKg ?? 0) * i.qty, 0)
-    const storable = containers.filter((c) => !CONTAINER_META[c.type].obstacle)
+    const storable = containers.filter((c) => !containerMeta(c.type).obstacle)
     const cap = storable.reduce((n, c) => n + c.capacity, 0)
     const slots = items.reduce((n, i) => n + (i.slots || 1), 0)
     const floor = rooms.reduce((n, r) => n + r.width * r.length, 0)
@@ -44,7 +44,7 @@ export function Dashboard() {
       .map((c) => ({ c, st: containerStats(items, c) }))
       .filter((x) => x.st.fill > 1 || x.st.overweight)
     const emptyContainers = containers.filter(
-      (c) => !CONTAINER_META[c.type].obstacle && !items.some((i) => i.containerId === c.id),
+      (c) => !containerMeta(c.type).obstacle && !items.some((i) => i.containerId === c.id),
     )
     return { lowStock, expiring, over, emptyContainers }
   }, [items, containers, settings.expiryWarnDays])
@@ -155,7 +155,11 @@ export function Dashboard() {
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate text-[13px] font-medium">{r.name}</span>
                       <span className="mono shrink-0 text-[10.5px] muted">
-                        {r.width / 100}×{r.length / 100} m · {list.length} obj · {roomItems.length} lines
+                        {/* Everywhere else honours the unit setting and rounds;
+                            this printed raw metres, so a room entered in
+                            inches read "8.0137×…". */}
+                        {fmtLen(r.width, settings.units, false)}×{fmtLen(r.length, settings.units)}
+                        {' '}· {list.length} obj · {roomItems.length} lines
                       </span>
                     </div>
                     <div className="mt-1.5 grid grid-cols-2 gap-3">

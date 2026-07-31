@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { ContainerType } from '../types'
-import { CONTAINER_META } from '../types'
+import { containerMeta } from '../types'
 
 /**
  * Flat isometric thumbnail for a storage type, drawn as SVG so the catalogue
@@ -129,7 +129,7 @@ function specs(type: ContainerType): BoxSpec[] {
 }
 
 export function TypeIcon({ type, size = 46, color }: { type: ContainerType; size?: number; color?: string }) {
-  const meta = CONTAINER_META[type]
+  const meta = containerMeta(type)
   const fill = color ?? meta.color
   const stroke = '#3a4459'
 

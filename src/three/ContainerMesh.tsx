@@ -1,7 +1,7 @@
 ﻿import { memo, useMemo } from 'react'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Container } from '../types'
-import { CONTAINER_META } from '../types'
+import { containerMeta } from '../types'
 import { TextSprite } from './TextSprite'
 import { buildParts } from '../lib/parts'
 import {
@@ -32,7 +32,7 @@ export const ContainerMesh = memo(function ContainerMesh({
   container: c, fill, itemCount, selected, hovered, revealed, invalid, showLabel, showBadge,
   onPointerDown, onPointerOver, onPointerOut, onClick, onDoubleClick,
 }: ContainerVisual) {
-  const meta = CONTAINER_META[c.type]
+  const meta = containerMeta(c.type)
   const w = M(c.w)
   const h = M(c.h)
   const d = M(c.d)

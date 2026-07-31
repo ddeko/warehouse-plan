@@ -1,5 +1,5 @@
 import type { AppData, Container, ContainerType, Item, Movement, Room, Site, Uom } from '../types'
-import { CONTAINER_META } from '../types'
+import { containerMeta } from '../types'
 import { generateBarcode, uid } from './utils'
 
 /** Small deterministic PRNG so the demo dataset looks the same each time. */
@@ -176,7 +176,7 @@ export function buildSeed(): AppData {
   const counters: Record<string, number> = {}
   for (const room of rooms) {
     for (const l of layouts[room.name] ?? []) {
-      const meta = CONTAINER_META[l.type]
+      const meta = containerMeta(l.type)
       const prefix = l.type.slice(0, 3).toUpperCase()
       counters[prefix] = (counters[prefix] ?? 0) + 1
       containers.push({
@@ -202,7 +202,7 @@ export function buildSeed(): AppData {
     }
   }
 
-  const storable = containers.filter((c) => !CONTAINER_META[c.type].obstacle)
+  const storable = containers.filter((c) => !containerMeta(c.type).obstacle)
   const items: Item[] = []
   const movements: Movement[] = []
   let seq = 1

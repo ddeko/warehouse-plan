@@ -1,5 +1,5 @@
 import type { Container, Room, Rotation } from '../types'
-import { CONTAINER_META } from '../types'
+import { containerMeta } from '../types'
 
 export interface Rect {
   /** centre */
@@ -94,12 +94,21 @@ export function checkPlacement(
   const rect = footprint(candidate)
   const outOfBounds = !insideRoom(rect, room, opts.clearance)
   const blockedBy: string[] = []
-  if (opts.collision) {
-    for (const o of others) {
-      if (o.id === candidate.id || o.roomId !== candidate.roomId) continue
-      if (!verticalOverlap(candidate, o)) continue
-      if (rectsOverlap(rect, footprint(o))) blockedBy.push(o.id)
-    }
+  /*
+   * `collision` is the user's setting, nothing more — obstacles block either
+   * way, even with it switched off.
+   *
+   * Callers used to fold "the moving object is an obstacle" into this flag,
+   * which read as "this object ignores collisions" rather than "this object is
+   * not itself blocking". A rack could not be dropped onto a pillar, but the
+   * pillar could be dragged straight through the rack: the same overlap,
+   * legal or not depending only on which one you grabbed.
+   */
+  for (const o of others) {
+    if (o.id === candidate.id || o.roomId !== candidate.roomId) continue
+    if (!opts.collision && !isObstacle(o)) continue
+    if (!verticalOverlap(candidate, o)) continue
+    if (rectsOverlap(rect, footprint(o))) blockedBy.push(o.id)
   }
   return { ok: !outOfBounds && blockedBy.length === 0, blockedBy, outOfBounds }
 }
@@ -134,12 +143,32 @@ export function findFreeSpot(
   const settled = settle(start.x, start.z)
   if (settled) return settled
 
-  const maxRings = Math.ceil(Math.max(room.width, room.length) / step) + 2
+  /*
+   * Only ring out as far as the room actually extends.
+   *
+   * The bound used to be the room's longest side over the step, which on the
+   * seeded 2400×1600 room at a 20 cm grid is ~122 rings — roughly 60 000
+   * candidate positions, each tested against every container in the room,
+   * synchronously, before admitting there was no space. That froze the tab on
+   * the one path guaranteed to reach it: adding an object to a full room. Half
+   * the diagonal is enough to cover every point in the room from any start,
+   * and `seen` drops the duplicates that `clampToRoom` used to fold onto the
+   * same edge position over and over.
+   */
+  const maxRings = Math.ceil(Math.hypot(room.width, room.length) / 2 / step) + 1
+  const seen = new Set<string>()
   for (let ring = 1; ring <= maxRings; ring++) {
     for (let dx = -ring; dx <= ring; dx++) {
       for (let dz = -ring; dz <= ring; dz++) {
         if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue
-        const p = settle(start.x + dx * step, start.z + dz * step)
+        const x = start.x + dx * step
+        const z = start.z + dz * step
+        // Outside the room the clamp collapses whole arcs of the ring onto one
+        // point; testing it once is enough.
+        const key = `${Math.round(x)}:${Math.round(z)}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        const p = settle(x, z)
         if (p) return p
       }
     }
@@ -147,7 +176,12 @@ export function findFreeSpot(
   return null
 }
 
-/** Total footprint area (cm²) consumed by real storage objects in a room. */
+/**
+ * Total footprint area (cm²) every object in the list occupies.
+ *
+ * Includes obstacles: a structural pillar takes up just as much floor as a
+ * shelf does, and callers measuring how full a room is want it counted.
+ */
 export function usedFloorArea(containers: Container[]): number {
   return containers.reduce((sum, c) => {
     const f = footprint(c)
@@ -155,7 +189,7 @@ export function usedFloorArea(containers: Container[]): number {
   }, 0)
 }
 
-export const isObstacle = (c: Container) => !!CONTAINER_META[c.type]?.obstacle
+export const isObstacle = (c: Container) => !!containerMeta(c.type).obstacle
 
 /** Convert cm-space (origin at room corner) to three.js metres centred on the room. */
 export const toScene = (cm: number) => cm / 100

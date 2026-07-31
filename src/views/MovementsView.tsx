@@ -25,28 +25,41 @@ export function MovementsView() {
   const rmap = useMemo(() => new Map(rooms.map((r) => [r.id, r])), [rooms])
   const codeOf = (id?: string) => (id ? cmap.get(id)?.code ?? '—' : '—')
 
-  const filtered = useMemo(() => {
+  /** Everything the date range and search allow, before the type chips apply. */
+  const inScope = useMemo(() => {
     const s = q.trim().toLowerCase()
     const cutoff = days > 0 ? Date.now() - days * 86_400_000 : 0
     return movements.filter((m) => {
       if (m.ts < cutoff) return false
-      if (type && m.type !== type) return false
       if (s && ![m.name, m.sku, m.reference, m.user, m.note, codeOf(m.fromContainerId), codeOf(m.toContainerId)]
         .some((f) => f?.toLowerCase().includes(s))) return false
       return true
     })
-  }, [movements, q, type, days, cmap])
+  }, [movements, q, days, cmap])
 
+  const filtered = useMemo(
+    () => (type ? inScope.filter((m) => m.type === type) : inScope),
+    [inScope, type],
+  )
+
+  /*
+   * Counted over `inScope`, not `filtered`.
+   *
+   * Deriving the chips from the already-type-filtered list meant clicking
+   * "Receive" unmounted every other chip, so there was no way to switch
+   * straight to "Issue" — you had to clear the filter first. The chips are the
+   * type picker; they have to keep showing the types you could pick.
+   */
   const summary = useMemo(() => {
     const acc: Record<string, { count: number; qty: number }> = {}
-    for (const m of filtered) {
+    for (const m of inScope) {
       const a = acc[m.type] ?? { count: 0, qty: 0 }
       a.count += 1
       a.qty += m.qty
       acc[m.type] = a
     }
     return acc
-  }, [filtered])
+  }, [inScope])
 
   const exportCsv = () => {
     const rows = filtered.map((m) => ({
@@ -179,6 +192,16 @@ function PostMovement({ open, onClose }: { open: boolean; onClose: () => void })
 
   const post = () => {
     if (!item) return
+    /*
+     * A zero quantity is rejected by every store action it could reach, but
+     * the dialog still congratulated the user and closed — or, for a count,
+     * wrote a row that renders as "—". Refuse it here where it can be
+     * explained instead of silently swallowed downstream.
+     */
+    if (type !== 'adjust' && qty === 0) {
+      notify('Enter a quantity above zero', 'warn')
+      return
+    }
     if (type === 'transfer') {
       if (!target) return
       transferItem(item.id, target, qty)
@@ -187,6 +210,7 @@ function PostMovement({ open, onClose }: { open: boolean; onClose: () => void })
     } else if (type === 'issue' || type === 'dispose') {
       adjustQty(item.id, -Math.abs(qty), type, note || reference || 'Manual issue')
     } else if (type === 'adjust') {
+      if (qty === 0) { notify('An adjustment of zero changes nothing', 'warn'); return }
       adjustQty(item.id, qty, 'adjust', note || reference || 'Manual adjustment')
     } else {
       logMovement({
@@ -196,7 +220,9 @@ function PostMovement({ open, onClose }: { open: boolean; onClose: () => void })
     }
     notify('Movement posted')
     onClose()
-    setQty(1); setNote(''); setReference('')
+    // The dialog never unmounts, so every field has to be cleared by hand or
+    // the next open comes up pre-filled with the last posting.
+    setQty(1); setNote(''); setReference(''); setItemId(''); setTarget('')
   }
 
   return (

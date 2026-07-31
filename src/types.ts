@@ -57,7 +57,12 @@ export interface ContainerTypeMeta {
   size: [number, number, number]
   /** Soft pastel fill used by the toon renderer and the catalogue icons. */
   color: string
-  /** Round footprint renders as a cylinder and uses a circular collision hull. */
+  /**
+   * Renders as a cylinder filling the object's footprint.
+   *
+   * Collision stays axis-aligned against that footprint — there is no circular
+   * hull, and the doc used to claim otherwise.
+   */
   round?: boolean
   /** Default number of storable levels/slots. */
   levels?: number
@@ -92,12 +97,47 @@ export const CONTAINER_TYPES: ContainerTypeMeta[] = [
   { type: 'table', label: 'Table', category: 'surfaces', size: [160, 80, 75], color: '#e7ddd0', levels: 1, capacity: 10, hint: 'Staging / sorting table' },
   { type: 'workbench', label: 'Workbench', category: 'surfaces', size: [180, 75, 90], color: '#dcd3c6', levels: 2, capacity: 16, hint: 'Packing or repair bench' },
 
-  { type: 'pillar', label: 'Pillar', category: 'structure', size: [40, 40, 300], color: '#e2e6ee', obstacle: true, hint: 'Structural column (obstacle)' },
-  { type: 'door', label: 'Door / Access', category: 'structure', size: [110, 20, 210], color: '#bfe9cb', obstacle: true, hint: 'Doorway, keep clear (obstacle)' },
+  // Obstacles carry an explicit zero capacity. Leaving it undefined let the
+  // `?? 10` default in `addContainer` hand a structural column ten storage
+  // slots, which then showed up as "0/10" in the capacity report.
+  { type: 'pillar', label: 'Pillar', category: 'structure', size: [40, 40, 300], color: '#e2e6ee', obstacle: true, capacity: 0, hint: 'Structural column (obstacle)' },
+  { type: 'door', label: 'Door / Access', category: 'structure', size: [110, 20, 210], color: '#bfe9cb', obstacle: true, capacity: 0, hint: 'Doorway, keep clear (obstacle)' },
 ]
 
 export const CONTAINER_META: Record<ContainerType, ContainerTypeMeta> =
   Object.fromEntries(CONTAINER_TYPES.map((t) => [t.type, t])) as Record<ContainerType, ContainerTypeMeta>
+
+/**
+ * Stand-in for a type this build does not know about.
+ *
+ * Treated as an obstacle with no capacity: an unrecognised object still takes
+ * up floor space and still blocks movement, but nothing will try to stock it.
+ */
+const UNKNOWN_META: ContainerTypeMeta = {
+  type: 'box' as ContainerType,
+  label: 'Unknown type',
+  category: 'structure',
+  size: [60, 40, 40],
+  color: '#d8dde6',
+  capacity: 0,
+  obstacle: true,
+  hint: 'This object came from a newer or hand-edited file and is not recognised.',
+}
+
+/**
+ * Always use this instead of indexing `CONTAINER_META` directly.
+ *
+ * `Container.type` is typed, but data does not have to obey the type: a
+ * hand-edited backup, or one written by a build that has since renamed a type,
+ * carries whatever string it likes. A raw `CONTAINER_META[c.type].obstacle`
+ * threw on the dashboard — the default view — which unmounted the whole React
+ * tree. Because both the bad data and `view` are persisted, every reload
+ * re-crashed and there was no way back to the reset button. Degrading to a
+ * placeholder keeps the app navigable so the user can delete the object.
+ */
+export function containerMeta(type: ContainerType | string): ContainerTypeMeta {
+  return CONTAINER_META[type as ContainerType] ?? UNKNOWN_META
+}
 
 export type Rotation = 0 | 90 | 180 | 270
 
@@ -265,6 +305,11 @@ export interface Settings {
 }
 
 export interface AppData {
+  /**
+   * Schema the backup was written at. Absent on files exported before
+   * versioning existed, which are treated as pre-v3.
+   */
+  schemaVersion?: number
   sites: Site[]
   rooms: Room[]
   containers: Container[]

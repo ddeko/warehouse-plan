@@ -81,7 +81,13 @@ export function daysUntil(dateISO?: string): number | null {
   if (!dateISO) return null
   const d = new Date(dateISO)
   if (Number.isNaN(d.getTime())) return null
-  const ms = d.getTime() - new Date(new Date().toISOString().slice(0, 10)).getTime()
+  /*
+   * "Today" has to be the same today that `todayISO` stamps on a receipt.
+   * This used to take the UTC date while `todayISO` took the local one, so
+   * east of UTC every "days left" was off by one for part of the day — and an
+   * item received today could read as expiring yesterday.
+   */
+  const ms = d.getTime() - new Date(todayISO()).getTime()
   return Math.round(ms / 86_400_000)
 }
 
