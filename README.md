@@ -9,7 +9,7 @@ Everything runs in the browser — no backend, no account. State persists to
 `localStorage` and can be exported/imported as JSON.
 
 ```bash
-npm install
+npm install  
 npm run dev      # http://localhost:5180
 npm run build    # production bundle in dist/
 ```
