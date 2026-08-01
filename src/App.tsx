@@ -14,6 +14,7 @@ import { DataView } from './views/DataView'
 import { CommandPalette } from './components/CommandPalette'
 import { FeedbackModal } from './components/FeedbackModal'
 import { Tour, tourSeen } from './components/Tour'
+import { t as tr, useLanguage } from './lib/i18n'
 import { onStorageFailure, storageFailure } from './lib/storage'
 import { cx } from './lib/utils'
 
@@ -64,15 +65,13 @@ function StorageAlert() {
       <AlertTriangle size={14} className="shrink-0" />
       <span>
         {failure === 'quota'
-          ? 'This browser is out of storage — changes are no longer being saved and will be lost on reload.'
-          : 'Saved data could not be read. Saving is paused so the existing copy is not overwritten.'}
+          ? tr('This browser is out of storage — changes are no longer being saved and will be lost on reload.')
+          : tr('Saved data could not be read. Saving is paused so the existing copy is not overwritten.')}
       </span>
       <button
         className="rounded-md px-2 py-0.5 font-semibold underline underline-offset-2"
         onClick={() => setView('data')}
-      >
-        Export a backup
-      </button>
+      >{tr("Export a backup")}</button>
     </div>
   )
 }
@@ -106,6 +105,7 @@ export default function App() {
   const updateSettings = useStore((s) => s.updateSettings)
   const tourOpen = useStore((s) => s.tourOpen)
   const setTourOpen = useStore((s) => s.setTourOpen)
+  const language = useLanguage()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
 
@@ -130,7 +130,13 @@ export default function App() {
   }, [])
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    /*
+     * Keyed on the language so a switch remounts the tree. `t()` reads the
+     * store snapshot without subscribing — cheap and usable anywhere — and this
+     * is what makes that safe: nothing below can go on showing the previous
+     * language after the setting changes.
+     */
+    <div key={language} className="flex h-full w-full overflow-hidden">
       {/*
         The rail is the one thing that must never be unreachable, so it scrolls
         rather than clipping. A landscape phone is only ~375 px tall and the
@@ -144,26 +150,26 @@ export default function App() {
         <div
           className="mb-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl sm:mb-2"
           style={{ background: 'var(--accent)' }}
-          title="StoreSpace"
+          title={tr("StoreSpace")}
         >
           <Boxes size={18} color="#fff" />
         </div>
 
         {NAV.map(({ view: v, label, icon: Icon }) => (
-          <RailButton key={v} label={label} active={view === v} tour={`nav-${v}`} onClick={() => setView(v)}>
+          <RailButton key={v} label={tr(label)} active={view === v} tour={`nav-${v}`} onClick={() => setView(v)}>
             <Icon size={18} />
           </RailButton>
         ))}
 
         <div className="mt-auto flex shrink-0 flex-col items-center gap-1 pt-1">
-          <RailButton label="Send feedback" tour="nav-feedback" onClick={() => setFeedbackOpen(true)}>
+          <RailButton label={tr("Send feedback")} tour="nav-feedback" onClick={() => setFeedbackOpen(true)}>
             <MessageSquarePlus size={18} />
           </RailButton>
-          <RailButton label="Search  (Ctrl K)" tour="nav-search" onClick={() => setPaletteOpen(true)}>
+          <RailButton label={tr("Search  (Ctrl K)")} tour="nav-search" onClick={() => setPaletteOpen(true)}>
             <Search size={18} />
           </RailButton>
           <RailButton
-            label={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+            label={theme === 'dark' ? tr('Light theme') : tr('Dark theme')}
             tour="nav-theme"
             onClick={() => updateSettings({ theme: theme === 'dark' ? 'light' : 'dark' })}
           >

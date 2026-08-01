@@ -302,6 +302,8 @@ export interface Settings {
   currency: string
   expiryWarnDays: number
   theme: 'dark' | 'light'
+  /** UI language. Data the user typed is never translated. */
+  language: 'en' | 'id'
 }
 
 export interface AppData {

@@ -5,6 +5,7 @@ import { useStore, DEFAULT_SETTINGS } from '../store'
 import { Confirm, NumberField, Select, SelectField, SectionTitle, TextField, Toggle } from '../components/ui'
 import { parseCSV, toCSV } from '../lib/csv'
 import { CURRENCIES, currencySymbol } from '../lib/currencies'
+import { LANGUAGES, t as tr, trf, type Language } from '../lib/i18n'
 import { download, fmtNum, generateBarcode, uid } from '../lib/utils'
 
 export function DataView() {
@@ -138,69 +139,76 @@ export function DataView() {
   return (
     <div className="h-full overflow-y-auto">
       <header className="border-b hairline px-5 py-3.5" style={{ background: 'var(--panel)' }}>
-        <h1 className="text-[15px] font-semibold">Data &amp; settings</h1>
-        <p className="text-[11.5px] muted">Preferences, backups and bulk import/export</p>
+        <h1 className="text-[15px] font-semibold">{tr("Data & settings")}</h1>
+        <p className="text-[11.5px] muted">{tr("Preferences, backups and bulk import/export")}</p>
       </header>
 
       {/* Forms read badly at full monitor width, so cap the column measure. */}
       <div className="mx-auto grid max-w-[1280px] gap-4 p-5 lg:grid-cols-2">
         {/* ------------------------------------------------------- settings */}
         <section className="card p-4">
-          <SectionTitle>Display &amp; behaviour</SectionTitle>
+          <SectionTitle>{tr("Display & behaviour")}</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2">
             <SelectField
-              label="Measurement units"
+              label={tr("Measurement units")}
               value={settings.units}
               onChange={(v: Units) => updateSettings({ units: v })}
               options={[
-                { value: 'cm', label: 'Centimetres (cm)' },
-                { value: 'm', label: 'Metres (m)' },
-                { value: 'in', label: 'Inches (in)' },
+                { value: 'cm', label: tr('Centimetres (cm)') },
+                { value: 'm', label: tr('Metres (m)') },
+                { value: 'in', label: tr('Inches (in)') },
               ]}
-              hint="Sizes are stored in cm and converted for display"
+              hint={tr("Sizes are stored in cm and converted for display")}
             />
             <SelectField
-              label="Theme"
+              label={tr('Theme')}
               value={settings.theme}
               onChange={(v: 'dark' | 'light') => updateSettings({ theme: v })}
-              options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]}
+              options={[{ value: 'dark', label: tr('Dark') }, { value: 'light', label: tr('Light') }]}
             />
-            <TextField label="Operator name" value={settings.operator} onChange={(v) => updateSettings({ operator: v })} hint="Stamped on every movement" />
+            {/* Language names stay in their own language — a reader who cannot
+                read the current UI still has to be able to find their way out. */}
             <SelectField
-              label="Currency"
+              label={tr('Language')}
+              value={settings.language}
+              onChange={(v: Language) => updateSettings({ language: v })}
+              options={LANGUAGES}
+            />
+            <TextField label={tr("Operator name")} value={settings.operator} onChange={(v) => updateSettings({ operator: v })} hint={tr("Stamped on every movement")} />
+            <SelectField
+              label={tr("Currency")}
               value={settings.currency}
               onChange={(v) => updateSettings({ currency: v })}
               options={currencyOptions}
-              hint="Used for stock value across the dashboard and reports"
+              hint={tr("Used for stock value across the dashboard and reports")}
             />
-            <NumberField label="Expiry warning" suffix="days" min={0} value={settings.expiryWarnDays} onChange={(v) => updateSettings({ expiryWarnDays: Math.max(0, Math.round(v)) })} />
-            <NumberField label="Wall clearance" suffix="cm" min={0} step={5} value={settings.wallClearance} onChange={(v) => updateSettings({ wallClearance: Math.max(0, v) })} hint="Keeps objects away from room edges" />
+            <NumberField label={tr("Expiry warning")} suffix="days" min={0} value={settings.expiryWarnDays} onChange={(v) => updateSettings({ expiryWarnDays: Math.max(0, Math.round(v)) })} />
+            <NumberField label={tr("Wall clearance")} suffix="cm" min={0} step={5} value={settings.wallClearance} onChange={(v) => updateSettings({ wallClearance: Math.max(0, v) })} hint={tr("Keeps objects away from room edges")} />
           </div>
 
           <div className="mt-3 space-y-0.5 border-t hairline pt-3">
-            <Toggle label="Snap to grid" hint="Objects align to the room's grid spacing while dragging" checked={settings.snapEnabled} onChange={(b) => updateSettings({ snapEnabled: b })} />
-            <Toggle label="Collision detection" hint="Blocks objects from overlapping each other" checked={settings.collisionEnabled} onChange={(b) => updateSettings({ collisionEnabled: b })} />
-            <Toggle label="Show grid" checked={settings.showGrid} onChange={(b) => updateSettings({ showGrid: b })} />
-            <Toggle label="Show walls" checked={settings.showWalls} onChange={(b) => updateSettings({ showWalls: b })} />
-            <Toggle label="Show object labels" checked={settings.showLabels} onChange={(b) => updateSettings({ showLabels: b })} />
-            <Toggle label="Show fill badges" hint="Only containers holding stock get a badge" checked={settings.showFillBadges} onChange={(b) => updateSettings({ showFillBadges: b })} />
+            <Toggle label={tr("Snap to grid")} hint={tr("Objects align to the room's grid spacing while dragging")} checked={settings.snapEnabled} onChange={(b) => updateSettings({ snapEnabled: b })} />
+            <Toggle label={tr("Collision detection")} hint={tr("Blocks objects from overlapping each other")} checked={settings.collisionEnabled} onChange={(b) => updateSettings({ collisionEnabled: b })} />
+            <Toggle label={tr("Show grid")} checked={settings.showGrid} onChange={(b) => updateSettings({ showGrid: b })} />
+            <Toggle label={tr("Show walls")} checked={settings.showWalls} onChange={(b) => updateSettings({ showWalls: b })} />
+            <Toggle label={tr("Show object labels")} checked={settings.showLabels} onChange={(b) => updateSettings({ showLabels: b })} />
+            <Toggle label={tr("Show fill badges")} hint={tr("Only containers holding stock get a badge")} checked={settings.showFillBadges} onChange={(b) => updateSettings({ showFillBadges: b })} />
           </div>
 
           <button className="btn mt-3" onClick={() => updateSettings(DEFAULT_SETTINGS)}>
-            <RotateCcw size={13} /> Reset settings to defaults
-          </button>
+            <RotateCcw size={13} />{tr("Reset settings to defaults")}</button>
         </section>
 
         {/* --------------------------------------------------------- backup */}
         <div className="space-y-4">
           <section className="card p-4">
-            <SectionTitle>Storage</SectionTitle>
+            <SectionTitle>{tr("Storage")}</SectionTitle>
             <div className="grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
               {[
-                ['Rooms', rooms.length],
-                ['Objects', containers.length],
-                ['Stock lines', items.length],
-                ['Movements', movements.length],
+                [tr('Rooms'), rooms.length],
+                [tr('Objects'), containers.length],
+                [tr('Stock lines'), items.length],
+                [tr('Movements'), movements.length],
               ].map(([label, n]) => (
                 <div key={label as string} className="rounded-lg border hairline p-2 panel-2">
                   <p className="muted text-[10.5px]">{label}</p>
@@ -209,24 +217,24 @@ export function DataView() {
               ))}
             </div>
             <p className="mt-2 flex items-center gap-1.5 text-[11px] muted">
-              <HardDrive size={12} /> Roughly {fmtNum(bytes / 1024, 1)} KB held in this browser's local storage.
+              <HardDrive size={12} /> {trf("Roughly {n} KB held in this browser's local storage.", { n: fmtNum(bytes / 1024, 1) })}
             </p>
           </section>
 
           <section className="card p-4">
-            <SectionTitle>Backup &amp; restore</SectionTitle>
+            <SectionTitle>{tr("Backup & restore")}</SectionTitle>
             <div className="flex flex-wrap gap-1.5">
-              <button className="btn btn-primary" onClick={doExportJson}><Download size={13} /> Export JSON backup</button>
-              <button className="btn" onClick={() => jsonInput.current?.click()}><Upload size={13} /> Import JSON</button>
+              <button className="btn btn-primary" onClick={doExportJson}><Download size={13} />{tr("Export JSON backup")}</button>
+              <button className="btn" onClick={() => jsonInput.current?.click()}><Upload size={13} />{tr("Import JSON")}</button>
               <Select
                 className="w-[190px]"
                 value={importMode}
                 onChange={(v) => setImportMode(v as 'replace' | 'merge')}
                 options={[
-                  { value: 'replace', label: 'Replace everything' },
-                  { value: 'merge', label: 'Merge into current' },
+                  { value: 'replace', label: tr('Replace everything') },
+                  { value: 'merge', label: tr('Merge into current') },
                 ]}
-                ariaLabel="Import mode"
+                ariaLabel={tr("Import mode")}
               />
             </div>
             <input
@@ -238,14 +246,15 @@ export function DataView() {
             />
 
             <div className="mt-4 border-t hairline pt-3">
-              <SectionTitle>Bulk item import (CSV)</SectionTitle>
+              <SectionTitle>{tr("Bulk item import (CSV)")}</SectionTitle>
               <p className="mb-2 text-[11px] muted leading-relaxed">
-                Match rows to objects with a <code className="mono">container</code> column holding the object code
-                (e.g. <code className="mono">SHF-01</code>). Unknown codes fall back to the first object.
+                {tr('Match rows to objects with a')} <code className="mono">container</code>{' '}
+                {tr('column holding the object code (e.g.')} <code className="mono">SHF-01</code>
+                {tr('). Unknown codes fall back to the first object.')}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                <button className="btn" onClick={() => csvInput.current?.click()} disabled={!containers.length}><FileUp size={13} /> Import items CSV</button>
-                <button className="btn" onClick={downloadTemplate}><Download size={13} /> Download template</button>
+                <button className="btn" onClick={() => csvInput.current?.click()} disabled={!containers.length}><FileUp size={13} />{tr("Import items CSV")}</button>
+                <button className="btn" onClick={downloadTemplate}><Download size={13} />{tr("Download template")}</button>
               </div>
               <input
                 ref={csvInput}
@@ -258,15 +267,15 @@ export function DataView() {
           </section>
 
           <section className="card p-4">
-            <SectionTitle>Demo &amp; reset</SectionTitle>
+            <SectionTitle>{tr("Demo & reset")}</SectionTitle>
             <div className="flex flex-wrap gap-1.5">
-              <button className="btn" onClick={loadSample}><Sparkles size={13} /> Load sample warehouse</button>
+              <button className="btn" onClick={loadSample}><Sparkles size={13} />{tr("Load sample warehouse")}</button>
               {/* The tour runs itself once on a first visit, so this is the only
                   way back to it afterwards. */}
-              <button className="btn" onClick={() => setTourOpen(true)}><GraduationCap size={13} /> Replay guided tour</button>
-              <button className="btn btn-danger" onClick={() => setConfirmReset(true)}><Database size={13} /> Delete all data</button>
+              <button className="btn" onClick={() => setTourOpen(true)}><GraduationCap size={13} />{tr("Replay guided tour")}</button>
+              <button className="btn btn-danger" onClick={() => setConfirmReset(true)}><Database size={13} />{tr("Delete all data")}</button>
             </div>
-            <p className="mt-2 text-[11px] muted">Loading the sample replaces the current rooms, objects, items and history.</p>
+            <p className="mt-2 text-[11px] muted">{tr("Loading the sample replaces the current rooms, objects, items and history.")}</p>
           </section>
         </div>
       </div>
@@ -275,9 +284,9 @@ export function DataView() {
         open={confirmReset}
         onClose={() => setConfirmReset(false)}
         onConfirm={resetAll}
-        title="Delete all data?"
-        message="Every room, object, stock line and movement is removed from this browser. Export a backup first if you need one."
-        confirmLabel="Delete everything"
+        title={tr("Delete all data?")}
+        message={tr("Every room, object, stock line and movement is removed from this browser. Export a backup first if you need one.")}
+        confirmLabel={tr("Delete everything")}
       />
     </div>
   )

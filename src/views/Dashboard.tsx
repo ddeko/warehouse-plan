@@ -9,6 +9,7 @@ import { containerMeta, ITEM_STATUSES } from '../types'
 import { areaM2, cx, daysUntil, fmtDateTime, fmtLen, fmtMoney, fmtNum } from '../lib/utils'
 import { usedFloorArea } from '../lib/geometry'
 import { describeLocation } from '../lib/movements'
+import { t as tr, trf } from '../lib/i18n'
 
 export function Dashboard() {
   const rooms = useStore((s) => s.rooms)
@@ -83,12 +84,12 @@ export function Dashboard() {
   if (!rooms.length && !items.length) {
     return (
       <Empty
-        title="Welcome to StoreSpace"
+        title={tr("Welcome to StoreSpace")}
         hint="Model your rooms to real dimensions, place shelves, racks, fridges and pallets inside them, then track every item, barcode, lot and movement. Start from a sample warehouse or build your own."
         action={
           <div className="flex gap-2">
-            <button className="btn btn-primary" onClick={loadSample}><Sparkles size={14} /> Load sample warehouse</button>
-            <button className="btn" onClick={() => setView('rooms')}><Plus size={14} /> Create first room</button>
+            <button className="btn btn-primary" onClick={loadSample}><Sparkles size={14} />{tr("Load sample warehouse")}</button>
+            <button className="btn" onClick={() => setView('rooms')}><Plus size={14} />{tr("Create first room")}</button>
           </div>
         }
       />
@@ -99,10 +100,13 @@ export function Dashboard() {
     <div className="h-full overflow-y-auto">
       <header className="flex items-center justify-between gap-3 border-b hairline px-5 py-3.5" style={{ background: 'var(--panel)' }}>
         <div>
-          <h1 className="text-[15px] font-semibold">Dashboard</h1>
-          <p className="text-[11.5px] muted">Live snapshot across {rooms.length} rooms and {containers.length} storage objects</p>
+          <h1 className="text-[15px] font-semibold">{tr("Dashboard")}</h1>
+          <p className="text-[11.5px] muted">
+            {trf('Live snapshot across {rooms} rooms and {objects} storage objects',
+              { rooms: rooms.length, objects: containers.length })}
+          </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setView('rooms')}>Open layout <ArrowRight size={13} /></button>
+        <button className="btn btn-primary" onClick={() => setView('rooms')}>{tr("Open layout")}<ArrowRight size={13} /></button>
       </header>
 
       {/* Capped width: on a wide monitor the six-column KPI row and the cards
@@ -110,25 +114,25 @@ export function Dashboard() {
       <div className="mx-auto max-w-[1560px] space-y-4 p-5">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Stat
-            label="Rooms"
+            label={tr("Rooms")}
             value={rooms.length}
-            sub={`${fmtNum(rooms.reduce((n, r) => n + areaM2(r.width, r.length), 0), 1)} m² floor`}
+            sub={trf('{n} m² floor', { n: fmtNum(rooms.reduce((n, r) => n + areaM2(r.width, r.length), 0), 1) })}
             icon={<Warehouse size={14} />}
           />
-          <Stat label="Storage objects" value={containers.length} sub={`${kpis.storable} hold stock`} icon={<Boxes size={14} />} />
-          <Stat label="Stock lines" value={fmtNum(items.length)} sub={`${fmtNum(kpis.qty)} units`} icon={<Package size={14} />} />
+          <Stat label={tr("Storage objects")} value={containers.length} sub={trf('{n} hold stock', { n: kpis.storable })} icon={<Boxes size={14} />} />
+          <Stat label={tr("Stock lines")} value={fmtNum(items.length)} sub={trf('{n} units', { n: fmtNum(kpis.qty) })} icon={<Package size={14} />} />
           <Stat
-            label="Slot occupancy"
+            label={tr("Slot occupancy")}
             value={`${kpis.cap ? Math.round((kpis.slots / kpis.cap) * 100) : 0}%`}
-            sub={`${fmtNum(kpis.slots)} / ${fmtNum(kpis.cap)} slots`}
+            sub={trf('{a} / {b} slots', { a: fmtNum(kpis.slots), b: fmtNum(kpis.cap) })}
             tone={kpis.cap && kpis.slots / kpis.cap > 0.9 ? 'warn' : 'info'}
             icon={<Layers size={14} />}
           />
-          <Stat label="Inventory value" value={fmtMoney(kpis.value, settings.currency)} sub={`${fmtNum(kpis.weight, 0)} kg total`} tone="good" icon={<CircleDollarSign size={14} />} />
+          <Stat label={tr("Inventory value")} value={fmtMoney(kpis.value, settings.currency)} sub={trf('{n} kg total', { n: fmtNum(kpis.weight, 0) })} tone="good" icon={<CircleDollarSign size={14} />} />
           <Stat
-            label="Open alerts"
+            label={tr("Open alerts")}
             value={alerts.lowStock.length + alerts.expiring.length + alerts.over.length}
-            sub="low stock · expiry · capacity"
+            sub={tr('low stock · expiry · capacity')}
             tone={alerts.lowStock.length + alerts.expiring.length + alerts.over.length > 0 ? 'bad' : 'good'}
             icon={<AlertTriangle size={14} />}
           />
@@ -137,7 +141,7 @@ export function Dashboard() {
         <div className="grid gap-4 lg:grid-cols-3">
           {/* rooms */}
           <section className="card p-3 lg:col-span-2">
-            <SectionTitle right={<button className="btn btn-sm" onClick={() => setView('rooms')}>Manage</button>}>Room utilisation</SectionTitle>
+            <SectionTitle right={<button className="btn btn-sm" onClick={() => setView('rooms')}>{tr("Manage")}</button>}>{tr("Room utilisation")}</SectionTitle>
             <div className="space-y-2.5">
               {rooms.map((r) => {
                 const list = containers.filter((c) => c.roomId === r.id)
@@ -159,16 +163,16 @@ export function Dashboard() {
                             this printed raw metres, so a room entered in
                             inches read "8.0137×…". */}
                         {fmtLen(r.width, settings.units, false)}×{fmtLen(r.length, settings.units)}
-                        {' '}· {list.length} obj · {roomItems.length} lines
+                        {' '}· {trf('{o} obj · {l} lines', { o: list.length, l: roomItems.length })}
                       </span>
                     </div>
                     <div className="mt-1.5 grid grid-cols-2 gap-3">
                       <div>
-                        <div className="mb-0.5 flex justify-between text-[10px] muted"><span>Floor</span><span>{Math.round(floorRatio * 100)}%</span></div>
+                        <div className="mb-0.5 flex justify-between text-[10px] muted"><span>{tr("Floor")}</span><span>{Math.round(floorRatio * 100)}%</span></div>
                         <Bar ratio={floorRatio} height={4} />
                       </div>
                       <div>
-                        <div className="mb-0.5 flex justify-between text-[10px] muted"><span>Slots</span><span>{cap ? Math.round((slots / cap) * 100) : 0}%</span></div>
+                        <div className="mb-0.5 flex justify-between text-[10px] muted"><span>{tr("Slots")}</span><span>{cap ? Math.round((slots / cap) * 100) : 0}%</span></div>
                         <Bar ratio={cap ? slots / cap : 0} height={4} />
                       </div>
                     </div>
@@ -180,15 +184,15 @@ export function Dashboard() {
 
           {/* status mix */}
           <section className="card p-3">
-            <SectionTitle>Stock status</SectionTitle>
+            <SectionTitle>{tr("Stock status")}</SectionTitle>
             {byStatus.length === 0 ? (
-              <p className="py-6 text-center text-[12px] muted">No stock recorded.</p>
+              <p className="py-6 text-center text-[12px] muted">{tr("No stock recorded.")}</p>
             ) : (
               <div className="space-y-2">
                 {byStatus.map((s) => (
                   <div key={s.value}>
                     <div className="mb-0.5 flex justify-between text-[11px]">
-                      <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}</span>
+                      <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{tr(s.label)}</span>
                       <span className="tabular-nums muted">{s.count}</span>
                     </div>
                     <Bar ratio={s.count / Math.max(1, items.length)} color={s.color} height={4} />
@@ -197,7 +201,7 @@ export function Dashboard() {
               </div>
             )}
 
-            <SectionTitle>Top categories by value</SectionTitle>
+            <SectionTitle>{tr("Top categories by value")}</SectionTitle>
             <div className="space-y-1.5">
               {byCategory.map(([cat, v]) => (
                 <div key={cat}>
@@ -215,10 +219,10 @@ export function Dashboard() {
         {/* alerts */}
         <div className="grid gap-4 lg:grid-cols-3">
           <AlertCard
-            title="Low stock"
+            title={tr("Low stock")}
             icon={<TrendingDown size={13} />}
             tone="#f59e0b"
-            empty="All lines above their reorder point."
+            empty={tr('All lines above their reorder point.')}
             rows={alerts.lowStock.slice(0, 8).map((i) => ({
               id: i.id,
               main: i.name,
@@ -228,20 +232,20 @@ export function Dashboard() {
             more={Math.max(0, alerts.lowStock.length - 8)}
           />
           <AlertCard
-            title="Expiring / expired"
+            title={tr("Expiring / expired")}
             icon={<CalendarClock size={13} />}
             tone="#ef4444"
             empty={`Nothing expires in the next ${settings.expiryWarnDays} days.`}
             rows={alerts.expiring.slice(0, 8).map(({ i, d }) => ({
               id: i.id,
               main: i.name,
-              sub: `${i.sku} · ${d! < 0 ? `expired ${-d!} days ago` : `${d} days left`}`,
+              sub: `${i.sku} · ${d! < 0 ? trf('expired {n} days ago', { n: -d! }) : trf('{n} days left', { n: d! })}`,
               onClick: () => jumpToContainer(i.containerId),
             }))}
             more={Math.max(0, alerts.expiring.length - 8)}
           />
           <AlertCard
-            title="Capacity & load"
+            title={tr("Capacity & load")}
             icon={<Scale size={13} />}
             tone="#ef4444"
             empty="No container is over capacity or overweight."
@@ -259,14 +263,14 @@ export function Dashboard() {
 
         {/* recent activity */}
         <section className="card p-3">
-          <SectionTitle right={<button className="btn btn-sm" onClick={() => setView('movements')}>All movements</button>}>Recent activity</SectionTitle>
+          <SectionTitle right={<button className="btn btn-sm" onClick={() => setView('movements')}>{tr("All movements")}</button>}>{tr("Recent activity")}</SectionTitle>
           {movements.length === 0 ? (
-            <p className="py-6 text-center text-[12px] muted">No movements recorded yet.</p>
+            <p className="py-6 text-center text-[12px] muted">{tr("No movements recorded yet.")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
-                  <tr><th>When</th><th>Type</th><th>Item</th><th className="num">Qty</th><th>Location</th><th>User</th></tr>
+                  <tr><th>{tr("When")}</th><th>{tr("Type")}</th><th>{tr("Item")}</th><th className="num">{tr("Qty")}</th><th>{tr("Location")}</th><th>{tr("User")}</th></tr>
                 </thead>
                 <tbody>
                   {movements.slice(0, 10).map((m) => (

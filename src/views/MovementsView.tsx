@@ -7,6 +7,7 @@ import { Confirm, Empty, Field, Modal, NumberField, Select, SelectField, TextFie
 import { toCSV } from '../lib/csv'
 import { cx, download, fmtDateTime, fmtNum } from '../lib/utils'
 import { describeLocation } from '../lib/movements'
+import { t as tr, trf } from '../lib/i18n'
 
 export function MovementsView() {
   const movements = useStore((s) => s.movements)
@@ -78,29 +79,29 @@ export function MovementsView() {
       <header className="border-b hairline px-3 py-3 sm:px-5" style={{ background: 'var(--panel)' }}>
         <div className="flex flex-wrap items-center gap-2">
           <div>
-            <h1 className="text-[15px] font-semibold">Movements &amp; audit trail</h1>
-            <p className="text-[11.5px] muted">{fmtNum(filtered.length)} entries · every receipt, pick, transfer, count and relocation</p>
+            <h1 className="text-[15px] font-semibold">{tr("Movements & audit trail")}</h1>
+            <p className="text-[11.5px] muted">{trf('{n} entries \u00b7 every receipt, pick, transfer, count and relocation', { n: fmtNum(filtered.length) })}</p>
           </div>
           <div className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto">
             <div className="relative w-full sm:w-auto">
               <Search size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 muted" />
-              <input className="input w-full pl-7 sm:w-56" placeholder="Search reference, SKU, user…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className="input w-full pl-7 sm:w-56" placeholder={tr("Search reference, SKU, user…")} value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <Select
               className="w-[130px]"
               value={type}
               onChange={(v) => setType(v as MovementType | '')}
-              options={[{ value: '', label: 'All types' }, ...MOVEMENT_TYPES.map((t) => ({ value: t.value, label: t.label }))]}
-              ariaLabel="Filter by movement type"
+              options={[{ value: '', label: tr('All types') }, ...MOVEMENT_TYPES.map((mt) => ({ value: mt.value, label: tr(mt.label) }))]}
+              ariaLabel={tr("Filter by movement type")}
             />
             <Select
               className="w-[130px]"
               value={String(days)}
               onChange={(v) => setDays(Number(v))}
-              options={[7, 30, 90, 365, 0].map((d) => ({ value: String(d), label: d === 0 ? 'All time' : `Last ${d} days` }))}
-              ariaLabel="Filter by date range"
+              options={[7, 30, 90, 365, 0].map((d) => ({ value: String(d), label: d === 0 ? tr('All time') : trf('Last {d} days', { d }) }))}
+              ariaLabel={tr("Filter by date range")}
             />
-            <button className="btn btn-primary" onClick={() => setPostOpen(true)} disabled={!containers.length}><Plus size={13} /> Post movement</button>
+            <button className="btn btn-primary" onClick={() => setPostOpen(true)} disabled={!containers.length}><Plus size={13} />{tr("Post movement")}</button>
             <button className="btn" onClick={exportCsv} disabled={!filtered.length}><Download size={13} /> CSV</button>
             <button className="btn btn-danger" onClick={() => setConfirmClear(true)} disabled={!movements.length}><Trash2 size={13} /></button>
           </div>
@@ -113,7 +114,7 @@ export function MovementsView() {
             return (
               <button key={t.value} className={cx('chip', type === t.value && 'btn-active')} onClick={() => setType(type === t.value ? '' : t.value)}>
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.color }} />
-                {t.label} · {s.count}
+                {tr(t.label)} · {s.count}
               </button>
             )
           })}
@@ -122,13 +123,13 @@ export function MovementsView() {
 
       <div className="min-h-0 flex-1 overflow-auto">
         {filtered.length === 0 ? (
-          <Empty title="No movements in this window" hint="Change the date range or post a movement manually." />
+          <Empty title={tr("No movements in this window")} hint={tr("Change the date range or post a movement manually.")} />
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Timestamp</th><th>Type</th><th>Reference</th><th>Item</th>
-                <th className="num">Qty</th><th>Location</th><th>User</th><th>Note</th>
+                <th>{tr("Timestamp")}</th><th>{tr("Type")}</th><th>{tr("Reference")}</th><th>{tr("Item")}</th>
+                <th className="num">{tr("Qty")}</th><th>{tr("Location")}</th><th>{tr("User")}</th><th>{tr("Note")}</th>
               </tr>
             </thead>
             <tbody>
@@ -137,7 +138,7 @@ export function MovementsView() {
                 return (
                   <tr key={m.id}>
                     <td className="mono whitespace-nowrap muted">{fmtDateTime(m.ts)}</td>
-                    <td><span className="chip" style={{ color: t?.color, borderColor: `${t?.color}55` }}>{t?.label ?? m.type}</span></td>
+                    <td><span className="chip" style={{ color: t?.color, borderColor: `${t?.color}55` }}>{t ? tr(t.label) : m.type}</span></td>
                     <td className="mono muted">{m.reference ?? '—'}</td>
                     <td>
                       <span className="block max-w-[260px] truncate">{m.name}</span>
@@ -163,9 +164,9 @@ export function MovementsView() {
         open={confirmClear}
         onClose={() => setConfirmClear(false)}
         onConfirm={clearMovements}
-        title="Clear movement history?"
-        message="This deletes the audit trail. Stock levels and objects are not affected."
-        confirmLabel="Clear history"
+        title={tr("Clear movement history?")}
+        message={tr("This deletes the audit trail. Stock levels and objects are not affected.")}
+        confirmLabel={tr("Clear history")}
       />
     </div>
   )
@@ -229,28 +230,28 @@ function PostMovement({ open, onClose }: { open: boolean; onClose: () => void })
     <Modal
       open={open}
       onClose={onClose}
-      title="Post movement"
-      subtitle="Record a receipt, pick, transfer, adjustment or count"
+      title={tr("Post movement")}
+      subtitle={tr("Record a receipt, pick, transfer, adjustment or count")}
       footer={
         <>
-          <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={post} disabled={!item || (type === 'transfer' && !target)}>Post</button>
+          <button className="btn" onClick={onClose}>{tr("Cancel")}</button>
+          <button className="btn btn-primary" onClick={post} disabled={!item || (type === 'transfer' && !target)}>{tr("Post")}</button>
         </>
       }
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <SelectField
-          label="Movement type"
+          label={tr("Movement type")}
           value={type}
           onChange={(v: MovementType) => setType(v)}
-          options={MOVEMENT_TYPES.filter((t) => t.value !== 'relocate').map((t) => ({ value: t.value, label: t.label }))}
+          options={MOVEMENT_TYPES.filter((mt) => mt.value !== 'relocate').map((mt) => ({ value: mt.value, label: tr(mt.label) }))}
         />
-        <Field label="Item">
+        <Field label={tr("Item")}>
           <Select
             value={itemId}
             onChange={setItemId}
-            placeholder="Select stock line…"
-            ariaLabel="Item"
+            placeholder={tr("Select stock line…")}
+            ariaLabel={tr("Item")}
             options={items.map((i) => {
               const c = containers.find((k) => k.id === i.containerId)
               return { value: i.id, label: `${i.sku} — ${i.name} (${c?.code})`, hint: `${i.qty} ${i.uom}` }
@@ -258,19 +259,19 @@ function PostMovement({ open, onClose }: { open: boolean; onClose: () => void })
           />
         </Field>
         <NumberField
-          label="Quantity"
+          label={tr("Quantity")}
           value={qty}
           onChange={setQty}
           suffix={item?.uom}
           hint={type === 'adjust' ? 'Signed value: negative reduces stock' : undefined}
         />
         {type === 'transfer' ? (
-          <Field label="Destination">
+          <Field label={tr("Destination")}>
             <Select
               value={target}
               onChange={setTarget}
-              placeholder="Select container…"
-              ariaLabel="Destination container"
+              placeholder={tr("Select container…")}
+              ariaLabel={tr("Destination container")}
               options={rooms.flatMap((r) =>
                 containers
                   .filter((c) => c.roomId === r.id && c.capacity > 0 && c.id !== item?.containerId)
@@ -279,12 +280,11 @@ function PostMovement({ open, onClose }: { open: boolean; onClose: () => void })
             />
           </Field>
         ) : (
-          <TextField label="Reference" value={reference} onChange={setReference} placeholder="GRN-10234" mono />
+          <TextField label={tr("Reference")} value={reference} onChange={setReference} placeholder="GRN-10234" mono />
         )}
-        <TextField className="sm:col-span-2" label="Note" value={note} onChange={setNote} />
+        <TextField className="sm:col-span-2" label={tr("Note")} value={note} onChange={setNote} />
         {item && (
-          <p className="sm:col-span-2 rounded-lg border hairline p-2 text-[11px] muted panel-2">
-            Current stock: <span className="font-semibold text-[var(--text)]">{fmtNum(item.qty)} {item.uom}</span>
+          <p className="sm:col-span-2 rounded-lg border hairline p-2 text-[11px] muted panel-2">{tr("Current stock:")}<span className="font-semibold text-[var(--text)]">{fmtNum(item.qty)} {item.uom}</span>
             {' '}in {containers.find((c) => c.id === item.containerId)?.code}
             {type !== 'transfer' && type !== 'count' && (
               <> → after posting: <span className="font-semibold text-[var(--text)]">

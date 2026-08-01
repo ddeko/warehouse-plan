@@ -5,6 +5,7 @@ import { CONTAINER_CATEGORIES, CONTAINER_TYPES } from '../types'
 import { useStore } from '../store'
 import { TypeIcon } from './TypeIcon'
 import { cx, fmtLen } from '../lib/utils'
+import { t as tr } from '../lib/i18n'
 
 /**
  * Floating furniture catalogue: category list on the left, isometric tiles on
@@ -35,28 +36,27 @@ export function CatalogPanel({ roomId, onClose }: { roomId: string; onClose: () 
   return (
     <div className="float pop-in flex w-[386px] flex-col overflow-hidden" style={{ maxHeight: '100%' }}>
       <header className="flex items-center gap-2 border-b hairline px-3 py-2.5">
-        <p className="flex-1 text-[13px] font-semibold">Furniture</p>
-        <button className={cx('btn btn-ghost btn-sm', !dense && 'btn-active')} onClick={() => setDense(false)} title="Grid"><LayoutGrid size={14} /></button>
-        <button className={cx('btn btn-ghost btn-sm', dense && 'btn-active')} onClick={() => setDense(true)} title="List"><List size={14} /></button>
-        <button className="btn btn-ghost btn-sm" onClick={onClose} title="Close"><X size={14} /></button>
+        <p className="flex-1 text-[13px] font-semibold">{tr("Furniture")}</p>
+        <button className={cx('btn btn-ghost btn-sm', !dense && 'btn-active')} onClick={() => setDense(false)} title={tr("Grid")}><LayoutGrid size={14} /></button>
+        <button className={cx('btn btn-ghost btn-sm', dense && 'btn-active')} onClick={() => setDense(true)} title={tr("List")}><List size={14} /></button>
+        <button className="btn btn-ghost btn-sm" onClick={onClose} title={tr("Close")}><X size={14} /></button>
       </header>
 
       <div className="border-b hairline px-3 py-2">
         <div className="relative">
           <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 muted" />
-          <input className="input pl-8" placeholder="Search objects…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="input pl-8" placeholder={tr("Search objects…")} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1">
         <nav className="w-[136px] shrink-0 overflow-y-auto border-r hairline p-2">
-          <p className="section-label mb-1.5 px-1.5">Categories</p>
+          <p className="section-label mb-1.5 px-1.5">{tr("Categories")}</p>
           <button
             className={cx('mb-0.5 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[12px]',
               category === 'all' ? 'bg-[var(--accent-soft)] font-medium text-[var(--accent)]' : 'hover:bg-[var(--panel-2)]')}
             onClick={() => setCategory('all')}
-          >
-            All <span className="text-[10.5px] muted">{CONTAINER_TYPES.length}</span>
+          >{tr("All")}<span className="text-[10.5px] muted">{CONTAINER_TYPES.length}</span>
           </button>
           {CONTAINER_CATEGORIES.map((c) => (
             <button
@@ -65,7 +65,7 @@ export function CatalogPanel({ roomId, onClose }: { roomId: string; onClose: () 
                 category === c.key ? 'bg-[var(--accent-soft)] font-medium text-[var(--accent)]' : 'hover:bg-[var(--panel-2)]')}
               onClick={() => setCategory(c.key)}
             >
-              <span className="min-w-0 flex-1">{c.label}</span>
+              <span className="min-w-0 flex-1">{tr(c.label)}</span>
               <span className="text-[10.5px] muted">{counts.get(c.key)}</span>
             </button>
           ))}
@@ -84,7 +84,7 @@ export function CatalogPanel({ roomId, onClose }: { roomId: string; onClose: () 
                   >
                     <TypeIcon type={t.type} size={30} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[12.5px] font-medium">{t.label}</span>
+                      <span className="block truncate text-[12.5px] font-medium">{tr(t.label)}</span>
                       <span className="mono block truncate text-[10.5px] muted">
                         {fmtLen(t.size[0], units, false)}×{fmtLen(t.size[1], units, false)}×{fmtLen(t.size[2], units, false)}
                       </span>
@@ -100,7 +100,7 @@ export function CatalogPanel({ roomId, onClose }: { roomId: string; onClose: () 
                   <TypeIcon type={t.type} size={52} />
                   {/* Fixed label block keeps every tile in the grid the same height. */}
                   <span className="flex h-7 w-full flex-col justify-start">
-                    <span className="w-full truncate text-[11.5px] font-medium leading-tight">{t.label}</span>
+                    <span className="w-full truncate text-[11.5px] font-medium leading-tight">{tr(t.label)}</span>
                     <span className="mono w-full truncate text-[10px] muted">
                       {fmtLen(t.size[0], units, false)}×{fmtLen(t.size[1], units, false)}×{fmtLen(t.size[2], units, false)}
                     </span>
@@ -112,9 +112,7 @@ export function CatalogPanel({ roomId, onClose }: { roomId: string; onClose: () 
         </div>
       </div>
 
-      <footer className="border-t hairline px-3 py-2 text-[11px] muted">
-        Click an object to drop it into the room — it lands in the nearest free spot.
-      </footer>
+      <footer className="border-t hairline px-3 py-2 text-[11px] muted">{tr("Click an object to drop it into the room — it lands in the nearest free spot.")}</footer>
     </div>
   )
 }

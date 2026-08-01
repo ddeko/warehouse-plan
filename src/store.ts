@@ -27,6 +27,8 @@ export const DEFAULT_SETTINGS: Settings = {
   currency: 'USD',
   expiryWarnDays: 30,
   theme: 'light',
+  // Follows the browser on a fresh install; an explicit choice is persisted.
+  language: typeof navigator !== 'undefined' && navigator.language?.startsWith('id') ? 'id' : 'en',
 }
 
 export type View = 'dashboard' | 'rooms' | 'inventory' | 'movements' | 'reports' | 'data'

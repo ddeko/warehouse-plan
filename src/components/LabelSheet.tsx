@@ -5,6 +5,7 @@ import { Barcode } from './Barcode'
 import { Select } from './ui'
 import { useStore } from '../store'
 import { fmtDate, fmtNum } from '../lib/utils'
+import { t as tr } from '../lib/i18n'
 
 /**
  * Print-ready label sheet. Uses the browser print dialog so it works with any
@@ -39,23 +40,18 @@ export function LabelSheet({
           <p className="text-[11px] text-slate-500">{items.length} labels</p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1 text-[12px] text-slate-600">
-            Columns
-            <Select
+          <label className="flex items-center gap-1 text-[12px] text-slate-600">{tr("Columns")}<Select
               className="w-[64px]"
               value={String(perRow)}
               onChange={(v) => setPerRow(Number(v))}
               options={[2, 3, 4].map((n) => ({ value: String(n), label: String(n) }))}
-              ariaLabel="Columns per row"
+              ariaLabel={tr("Columns per row")}
             />
           </label>
           <label className="flex items-center gap-1 text-[12px] text-slate-600">
-            <input type="checkbox" checked={showQr} onChange={(e) => setShowQr(e.target.checked)} />
-            Details
-          </label>
+            <input type="checkbox" checked={showQr} onChange={(e) => setShowQr(e.target.checked)} />{tr("Details")}</label>
           <button className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-[12px] font-semibold text-white" onClick={() => window.print()}>
-            <Printer size={13} /> Print
-          </button>
+            <Printer size={13} />{tr("Print")}</button>
           <button className="rounded-lg border border-slate-300 p-1.5 text-slate-600" onClick={onClose}><X size={14} /></button>
         </div>
       </div>
@@ -71,11 +67,11 @@ export function LabelSheet({
             {showQr && (
               <table className="w-full text-[10px] text-slate-700">
                 <tbody>
-                  <tr><td className="text-slate-400">Qty</td><td className="text-right font-semibold">{fmtNum(it.qty)} {it.uom}</td></tr>
-                  {it.lot && <tr><td className="text-slate-400">Lot</td><td className="text-right font-mono">{it.lot}</td></tr>}
+                  <tr><td className="text-slate-400">{tr("Qty")}</td><td className="text-right font-semibold">{fmtNum(it.qty)} {it.uom}</td></tr>
+                  {it.lot && <tr><td className="text-slate-400">{tr("Lot")}</td><td className="text-right font-mono">{it.lot}</td></tr>}
                   {it.slot && <tr><td className="text-slate-400">Bin</td><td className="text-right font-mono">{it.slot}</td></tr>}
                   {it.receivedAt && <tr><td className="text-slate-400">In</td><td className="text-right">{fmtDate(it.receivedAt)}</td></tr>}
-                  {it.expiryAt && <tr><td className="text-slate-400">Exp</td><td className="text-right font-semibold">{fmtDate(it.expiryAt)}</td></tr>}
+                  {it.expiryAt && <tr><td className="text-slate-400">{tr("Exp")}</td><td className="text-right font-semibold">{fmtDate(it.expiryAt)}</td></tr>}
                 </tbody>
               </table>
             )}

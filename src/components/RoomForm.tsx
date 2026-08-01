@@ -3,6 +3,7 @@ import type { Room } from '../types'
 import { useStore } from '../store'
 import { Field, Modal, NumberField, Select, TextField } from './ui'
 import { areaM2, cx, fmtNum, fromCm, toCm, unitSuffix, volM3 } from '../lib/utils'
+import { t as tr, trf } from '../lib/i18n'
 
 const FLOOR_SWATCHES = ['#f6f7fb', '#eef6fa', '#faf6f1', '#f3f1fa', '#eef8f1', '#fdf6ee', '#f1f4f8']
 const WALL_SWATCHES = ['#eef1f8', '#e6f0f6', '#f3ede6', '#ece9f6', '#e7f3ec', '#f8f0e6']
@@ -59,19 +60,19 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
     <Modal
       open={open}
       onClose={onClose}
-      title={room ? `Edit ${room.code}` : 'New room'}
-      subtitle={room ? room.name : 'Define the floor area that objects are placed in'}
+      title={room ? trf('Edit {code}', { code: room.code }) : tr('New room')}
+      subtitle={room ? room.name : tr('Define the floor area that objects are placed in')}
       width="max-w-2xl"
       footer={
         <>
-          <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={save}>{room ? 'Save room' : 'Create room'}</button>
+          <button className="btn" onClick={onClose}>{tr("Cancel")}</button>
+          <button className="btn btn-primary" onClick={save}>{room ? tr('Save room') : tr('Create room')}</button>
         </>
       }
     >
       {!room && (
         <div className="mb-4">
-          <p className="label">Start from a preset</p>
+          <p className="label">{tr("Start from a preset")}</p>
           <div className="flex flex-wrap gap-1.5">
             {PRESETS.map((p) => (
               <button
@@ -79,7 +80,7 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
                 className="btn btn-sm"
                 onClick={() => setD((x) => ({ ...x, width: p.w, length: p.l, height: p.h, grid: p.grid }))}
               >
-                {p.label}
+                {tr(p.label)}
               </button>
             ))}
           </div>
@@ -87,20 +88,20 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
       )}
 
       <div className="grid gap-3 md:grid-cols-3">
-        <Field label="Site / location" className="md:col-span-2">
+        <Field label={tr("Site / location")} className="md:col-span-2">
           <Select
             value={d.siteId ?? ''}
             onChange={(v) => set('siteId', v)}
             options={sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }))}
-            ariaLabel="Site"
+            ariaLabel={tr("Site")}
           />
         </Field>
-        <TextField label="Code" mono value={d.code ?? ''} onChange={(v) => set('code', v)} placeholder="AUTO" hint="Unique within the site" />
+        <TextField label={tr("Code")} mono value={d.code ?? ''} onChange={(v) => set('code', v)} placeholder="AUTO" hint={tr("Unique within the site")} />
 
-        <TextField label="Room name" value={d.name ?? ''} onChange={(v) => set('name', v)} className="md:col-span-3" />
+        <TextField label={tr("Room name")} value={d.name ?? ''} onChange={(v) => set('name', v)} className="md:col-span-3" />
 
         <NumberField
-          label={`Width (X)`}
+          label={tr('Width (X)')}
           suffix={u}
           step={step}
           min={0.5}
@@ -108,7 +109,7 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
           onChange={(v) => set('width', toCm(v, units))}
         />
         <NumberField
-          label={`Length (Z)`}
+          label={tr('Length (Z)')}
           suffix={u}
           step={step}
           min={0.5}
@@ -116,7 +117,7 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
           onChange={(v) => set('length', toCm(v, units))}
         />
         <NumberField
-          label={`Height (Y)`}
+          label={tr('Height (Y)')}
           suffix={u}
           step={step}
           min={0.5}
@@ -125,21 +126,21 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
         />
 
         <NumberField
-          label="Snap grid"
+          label={tr("Snap grid")}
           suffix={u}
           step={units === 'cm' ? 5 : 0.05}
           min={0.01}
           value={fromCm(d.grid ?? 10, units)}
           onChange={(v) => set('grid', Math.max(1, toCm(v, units)))}
-          hint="Objects snap to this spacing"
+          hint={tr("Objects snap to this spacing")}
         />
-        <TextField label="Zone" value={d.zone ?? ''} onChange={(v) => set('zone', v)} placeholder="A" />
+        <TextField label={tr("Zone")} value={d.zone ?? ''} onChange={(v) => set('zone', v)} placeholder="A" />
         <div className="grid grid-cols-2 gap-2">
-          <NumberField label="Temp" suffix="°C" step={0.5} value={d.tempC ?? 20} onChange={(v) => set('tempC', v)} />
+          <NumberField label={tr("Temp")} suffix="°C" step={0.5} value={d.tempC ?? 20} onChange={(v) => set('tempC', v)} />
           <NumberField label="RH" suffix="%" step={1} min={0} max={100} value={d.humidity ?? 50} onChange={(v) => set('humidity', v)} />
         </div>
 
-        <Field label="Floor colour" className="md:col-span-1">
+        <Field label={tr("Floor colour")} className="md:col-span-1">
           <div className="flex flex-wrap gap-1.5">
             {FLOOR_SWATCHES.map((c) => (
               <button
@@ -151,7 +152,7 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
             ))}
           </div>
         </Field>
-        <Field label="Wall colour" className="md:col-span-1">
+        <Field label={tr("Wall colour")} className="md:col-span-1">
           <div className="flex flex-wrap gap-1.5">
             {WALL_SWATCHES.map((c) => (
               <button
@@ -165,12 +166,12 @@ export function RoomForm({ open, onClose, room }: { open: boolean; onClose: () =
         </Field>
         <div className="flex items-end">
           <div className="w-full rounded-lg border hairline p-2 text-[11px] muted panel-2">
-            <p>Floor area <span className="font-semibold text-[var(--text)]">{fmtNum(areaM2(d.width ?? 0, d.length ?? 0), 2)} m²</span></p>
-            <p>Volume <span className="font-semibold text-[var(--text)]">{fmtNum(volM3(d.width ?? 0, d.length ?? 0, d.height ?? 0), 2)} m³</span></p>
+            <p>{tr("Floor area")}<span className="font-semibold text-[var(--text)]">{fmtNum(areaM2(d.width ?? 0, d.length ?? 0), 2)} m²</span></p>
+            <p>{tr("Volume")}<span className="font-semibold text-[var(--text)]">{fmtNum(volM3(d.width ?? 0, d.length ?? 0, d.height ?? 0), 2)} m³</span></p>
           </div>
         </div>
 
-        <Field label="Notes" className="md:col-span-3">
+        <Field label={tr("Notes")} className="md:col-span-3">
           <textarea className="textarea" value={d.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
         </Field>
       </div>

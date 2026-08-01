@@ -20,6 +20,7 @@ import { RoomForm } from '../components/RoomForm'
 import { Bar, Confirm, Empty, Select } from '../components/ui'
 import { areaM2, cx, fmtLen, fmtNum } from '../lib/utils'
 import { usedFloorArea } from '../lib/geometry'
+import { t as tr, trf } from '../lib/i18n'
 
 /* ------------------------------------------------------------------ panels */
 
@@ -42,8 +43,8 @@ function RoomsPanel({ onClose, onEdit, onDelete, onAddRoom }: {
   return (
     <div className="float pop-in flex w-[min(270px,calc(100vw-7rem))] flex-col overflow-hidden" style={{ maxHeight: '100%' }}>
       <header className="flex items-center justify-between border-b hairline px-3 py-2.5">
-        <p className="text-[13px] font-semibold">Sites &amp; rooms</p>
-        <button className="btn btn-ghost btn-sm" onClick={onClose} title="Close">✕</button>
+        <p className="text-[13px] font-semibold">{tr("Sites & rooms")}</p>
+        <button className="btn btn-ghost btn-sm" onClick={onClose} title={tr("Close")}>✕</button>
       </header>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-2">
         {sites.map((site) => (
@@ -52,7 +53,7 @@ function RoomsPanel({ onClose, onEdit, onDelete, onAddRoom }: {
               <Building2 size={12} className="muted" />
               <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{site.name}</span>
               <span className="mono text-[10px] muted">{site.code}</span>
-              <button className="btn btn-ghost btn-sm" title="Add room here"
+              <button className="btn btn-ghost btn-sm" title={tr("Add room here")}
                 onClick={(e) => { e.stopPropagation(); setActiveSite(site.id); onAddRoom() }}><Plus size={11} /></button>
             </div>
             <div className="space-y-1.5">
@@ -77,13 +78,13 @@ function RoomsPanel({ onClose, onEdit, onDelete, onAddRoom }: {
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-0.5">
-                  <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); onEdit(r) }} title="Edit"><Pencil size={11} /></button>
-                  <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); duplicateRoom(r.id) }} title="Duplicate"><Copy size={11} /></button>
-                  <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); onDelete(r.id) }} title="Delete"><Trash2 size={11} /></button>
+                  <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); onEdit(r) }} title={tr("Edit")}><Pencil size={11} /></button>
+                  <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); duplicateRoom(r.id) }} title={tr("Duplicate")}><Copy size={11} /></button>
+                  <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); onDelete(r.id) }} title={tr("Delete")}><Trash2 size={11} /></button>
                 </div>
               </div>
               <div className="mt-1.5 flex items-center justify-between text-[10.5px] muted">
-                <span>{list.length} objects · {lines} lines</span>
+                <span>{trf('{o} objects · {l} lines', { o: list.length, l: lines })}</span>
                 <span>{Math.round(ratio * 100)}% floor</span>
               </div>
               <div className="mt-1"><Bar ratio={ratio} height={4} /></div>
@@ -92,7 +93,7 @@ function RoomsPanel({ onClose, onEdit, onDelete, onAddRoom }: {
         })}
             </div>
             {!rooms.some((r) => r.siteId === site.id) && (
-              <p className="px-1 py-1.5 text-[11px] muted">No rooms at this site yet.</p>
+              <p className="px-1 py-1.5 text-[11px] muted">{tr("No rooms at this site yet.")}</p>
             )}
           </div>
         ))}
@@ -118,13 +119,13 @@ function ObjectsPanel({ roomId, onClose }: { roomId: string; onClose: () => void
   return (
     <div className="float pop-in flex w-[min(270px,calc(100vw-7rem))] flex-col overflow-hidden" style={{ maxHeight: '100%' }}>
       <header className="flex items-center justify-between border-b hairline px-3 py-2.5">
-        <p className="text-[13px] font-semibold">Objects <span className="muted font-normal">({list.length})</span></p>
+        <p className="text-[13px] font-semibold">{tr("Objects")}<span className="muted font-normal">({list.length})</span></p>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
       </header>
       <div className="border-b hairline p-2">
         <div className="relative">
           <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 muted" />
-          <input className="input pl-8" placeholder="Filter objects…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="input pl-8" placeholder={tr("Filter objects…")} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       </div>
       <ul className="min-h-0 flex-1 overflow-y-auto p-1.5">
@@ -276,12 +277,12 @@ export function RoomsView() {
     return (
       <div className="h-full">
         <Empty
-          title="No rooms yet"
+          title={tr("No rooms yet")}
           hint="Create a room by entering its width, length and height — then drop shelves, racks, fridges and pallets inside and drag them into place."
           action={
             <div className="flex gap-2">
-              <button className="btn btn-primary" onClick={() => { setEditRoom(null); setRoomFormOpen(true) }}><Plus size={14} /> New room</button>
-              <button className="btn" onClick={loadSample}><Sparkles size={14} /> Load sample warehouse</button>
+              <button className="btn btn-primary" onClick={() => { setEditRoom(null); setRoomFormOpen(true) }}><Plus size={14} />{tr("New room")}</button>
+              <button className="btn" onClick={loadSample}><Sparkles size={14} />{tr("Load sample warehouse")}</button>
             </div>
           }
         />
@@ -314,8 +315,8 @@ export function RoomsView() {
             value={activeSiteId ?? ''}
             onChange={setActiveSite}
             options={sites.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` }))}
-            title="Site / location"
-            ariaLabel="Site"
+            title={tr("Site / location")}
+            ariaLabel={tr("Site")}
           />
         </div>
 
@@ -330,15 +331,15 @@ export function RoomsView() {
             value={room?.id ?? ''}
             onChange={setActiveRoom}
             options={siteRooms.map((r) => ({ value: r.id, label: `${r.code} — ${r.name}` }))}
-            title="Room"
-            ariaLabel="Room"
+            title={tr("Room")}
+            ariaLabel={tr("Room")}
           />
         </div>
 
         <button className="btn btn-sm btn-icon shrink-0" onClick={() => { setEditRoom(room); setRoomFormOpen(true) }} title="Edit this room's size and colours">
           <Pencil size={14} />
         </button>
-        <button className="btn btn-sm btn-icon shrink-0" onClick={() => { setEditRoom(null); setRoomFormOpen(true) }} title="Add a room to this site">
+        <button className="btn btn-sm btn-icon shrink-0" onClick={() => { setEditRoom(null); setRoomFormOpen(true) }} title={tr("Add a room to this site")}>
           <Plus size={14} />
         </button>
 
@@ -350,9 +351,9 @@ export function RoomsView() {
 
         {stats && (
           <span className="hidden shrink-0 items-center gap-3 text-[11.5px] muted xl:flex">
-            <span>{roomContainers.length} objects</span>
-            <span>{roomItems.length} lines</span>
-            <span>{fmtNum(stats.area, 1)} m² · {Math.round(stats.floor * 100)}% used</span>
+            <span>{trf('{n} objects', { n: roomContainers.length })}</span>
+            <span>{trf('{n} lines', { n: roomItems.length })}</span>
+            <span>{trf('{a} m² · {p}% used', { a: fmtNum(stats.area, 1), p: Math.round(stats.floor * 100) })}</span>
           </span>
         )}
         <button
@@ -395,7 +396,7 @@ export function RoomsView() {
           />
         )}
         {room && viewMode === 'webgl' && (
-          <Suspense fallback={<div className="grid h-full place-items-center text-[12px] muted">Loading 3D engine…</div>}>
+          <Suspense fallback={<div className="grid h-full place-items-center text-[12px] muted">{tr("Loading 3D engine…")}</div>}>
           <Scene
             room={room}
             containers={roomContainers}
@@ -426,9 +427,9 @@ export function RoomsView() {
         <div className="pointer-events-none absolute inset-0 flex">
           <div className="flex flex-col gap-1.5 p-2 sm:p-3">
             <div className="float pointer-events-auto flex flex-col gap-1 p-1.5">
-              <button className="rail-btn" data-active={leftPanel === 'rooms'} onClick={() => toggleLeftPanel('rooms')} title="Sites & rooms"><Home size={17} /></button>
-              <button className="rail-btn" data-active={leftPanel === 'catalog'} onClick={() => toggleLeftPanel('catalog')} title="Add furniture"><Sofa size={17} /></button>
-              <button className="rail-btn" data-active={leftPanel === 'objects'} onClick={() => toggleLeftPanel('objects')} title="Objects in room"><LayoutList size={17} /></button>
+              <button className="rail-btn" data-active={leftPanel === 'rooms'} onClick={() => toggleLeftPanel('rooms')} title={tr("Sites & rooms")}><Home size={17} /></button>
+              <button className="rail-btn" data-active={leftPanel === 'catalog'} onClick={() => toggleLeftPanel('catalog')} title={tr("Add furniture")}><Sofa size={17} /></button>
+              <button className="rail-btn" data-active={leftPanel === 'objects'} onClick={() => toggleLeftPanel('objects')} title={tr("Objects in room")}><LayoutList size={17} /></button>
             </div>
           </div>
 
@@ -479,24 +480,24 @@ export function RoomsView() {
             </div>
 
             <div className="float pointer-events-auto flex flex-col gap-1 p-1.5">
-              <button className="rail-btn h-8 w-8" onClick={() => setZoomCmd((c) => ({ n: c.n + 1, dir: 1 }))} title="Zoom in"><Plus size={16} /></button>
-              <button className="rail-btn h-8 w-8" onClick={() => setZoomCmd((c) => ({ n: c.n + 1, dir: -1 }))} title="Zoom out"><Minus size={16} /></button>
-              <button className="rail-btn h-8 w-8" onClick={() => setFitTick((t) => t + 1)} title="Fit room to view"><Maximize2 size={15} /></button>
+              <button className="rail-btn h-8 w-8" onClick={() => setZoomCmd((c) => ({ n: c.n + 1, dir: 1 }))} title={tr("Zoom in")}><Plus size={16} /></button>
+              <button className="rail-btn h-8 w-8" onClick={() => setZoomCmd((c) => ({ n: c.n + 1, dir: -1 }))} title={tr("Zoom out")}><Minus size={16} /></button>
+              <button className="rail-btn h-8 w-8" onClick={() => setFitTick((t) => t + 1)} title={tr("Fit room to view")}><Maximize2 size={15} /></button>
             </div>
 
             {/* Scene toggles, moved off the top bar so the header only carries
                 the site → room breadcrumb. */}
             <div className="float pointer-events-auto flex flex-col gap-1 p-1.5">
-              <button className="rail-btn h-8 w-8" data-active={settings.snapEnabled} onClick={() => updateSettings({ snapEnabled: !settings.snapEnabled })} title="Snap to grid"><Magnet size={15} /></button>
-              <button className="rail-btn h-8 w-8" data-active={settings.collisionEnabled} onClick={() => updateSettings({ collisionEnabled: !settings.collisionEnabled })} title="Collision detection"><ShieldAlert size={15} /></button>
-              <button className="rail-btn h-8 w-8" data-active={settings.showGrid} onClick={() => updateSettings({ showGrid: !settings.showGrid })} title="Floor grid"><Grid3x3 size={15} /></button>
-              <button className="rail-btn h-8 w-8" data-active={settings.showLabels} onClick={() => updateSettings({ showLabels: !settings.showLabels })} title="Object labels"><Tag size={15} /></button>
-              <button className="rail-btn h-8 w-8" data-active={settings.showFillBadges} onClick={() => updateSettings({ showFillBadges: !settings.showFillBadges })} title="Fill badges"><Eye size={15} /></button>
-              <button className="rail-btn h-8 w-8" data-active={settings.showWalls} onClick={() => updateSettings({ showWalls: !settings.showWalls })} title="Walls"><Home size={15} /></button>
+              <button className="rail-btn h-8 w-8" data-active={settings.snapEnabled} onClick={() => updateSettings({ snapEnabled: !settings.snapEnabled })} title={tr("Snap to grid")}><Magnet size={15} /></button>
+              <button className="rail-btn h-8 w-8" data-active={settings.collisionEnabled} onClick={() => updateSettings({ collisionEnabled: !settings.collisionEnabled })} title={tr("Collision detection")}><ShieldAlert size={15} /></button>
+              <button className="rail-btn h-8 w-8" data-active={settings.showGrid} onClick={() => updateSettings({ showGrid: !settings.showGrid })} title={tr("Floor grid")}><Grid3x3 size={15} /></button>
+              <button className="rail-btn h-8 w-8" data-active={settings.showLabels} onClick={() => updateSettings({ showLabels: !settings.showLabels })} title={tr("Object labels")}><Tag size={15} /></button>
+              <button className="rail-btn h-8 w-8" data-active={settings.showFillBadges} onClick={() => updateSettings({ showFillBadges: !settings.showFillBadges })} title={tr("Fill badges")}><Eye size={15} /></button>
+              <button className="rail-btn h-8 w-8" data-active={settings.showWalls} onClick={() => updateSettings({ showWalls: !settings.showWalls })} title={tr("Walls")}><Home size={15} /></button>
 
               <span className="my-0.5 h-px w-full" style={{ background: 'var(--line)' }} />
 
-              <button className="rail-btn h-8 w-8" onClick={() => room && autoArrange(room.id)} title="Auto-arrange: pack objects into tidy rows"><Layers size={15} /></button>
+              <button className="rail-btn h-8 w-8" onClick={() => room && autoArrange(room.id)} title={tr("Auto-arrange: pack objects into tidy rows")}><Layers size={15} /></button>
               {viewMode === 'webgl' && (
                 <button
                   className="rail-btn h-8 w-8"
@@ -545,11 +546,11 @@ export function RoomsView() {
             text wrapped to two lines and grew up into the panels. */}
         <div className="pointer-events-none absolute bottom-3 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] muted md:block"
           style={{ background: 'color-mix(in srgb, var(--panel) 90%, transparent)', border: '1px solid var(--line)' }}>
-          <b className="font-semibold text-[var(--text)]">Drag</b> move ·
+          <b className="font-semibold text-[var(--text)]">{tr('Drag')}</b> {tr('move')} ·
           {' '}<b className="font-semibold text-[var(--text)]">R</b> rotate ·
-          {' '}<b className="font-semibold text-[var(--text)]">Ctrl+D</b> copy ·
+          {' '}<b className="font-semibold text-[var(--text)]">Ctrl+D</b> {tr('copy')} ·
           {' '}<b className="font-semibold text-[var(--text)]">Del</b> remove ·
-          {' '}<b className="font-semibold text-[var(--text)]">Dbl-click</b> items
+          {' '}<b className="font-semibold text-[var(--text)]">{tr('Dbl-click')}</b> {tr('items')}
         </div>
         </div>
 
@@ -574,19 +575,18 @@ export function RoomsView() {
             {/* Closing from inside matters on the drawer, where the header
                 button can be a long reach away on a phone. */}
             <div className="flex shrink-0 items-center justify-between border-b hairline px-3 py-2 lg:hidden">
-              <p className="text-[12px] font-semibold">Properties</p>
-              <button className="btn btn-ghost btn-sm" onClick={() => setInspectorOpen(false)} aria-label="Close properties">✕</button>
+              <p className="text-[12px] font-semibold">{tr("Properties")}</p>
+              <button className="btn btn-ghost btn-sm" onClick={() => setInspectorOpen(false)} aria-label={tr("Close properties")}>✕</button>
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               {selected ? (
                 <ContainerInspector container={selected} />
               ) : (
                 <div className="p-4 text-center">
-                  <p className="text-[12.5px] font-medium">Nothing selected</p>
-                  <p className="mt-1 text-[11.5px] muted">Click an object in the room to edit its size, position and contents.</p>
+                  <p className="text-[12.5px] font-medium">{tr("Nothing selected")}</p>
+                  <p className="mt-1 text-[11.5px] muted">{tr("Click an object in the room to edit its size, position and contents.")}</p>
                   <button className="btn btn-primary mt-3 w-full" onClick={() => useStore.getState().setLeftPanel('catalog')}>
-                    <Plus size={13} /> Add an object
-                  </button>
+                    <Plus size={13} />{tr("Add an object")}</button>
                 </div>
               )}
             </div>
@@ -600,8 +600,8 @@ export function RoomsView() {
         open={!!deleteRoomId}
         onClose={() => setDeleteRoomId(null)}
         onConfirm={() => deleteRoomId && removeRoom(deleteRoomId)}
-        title="Delete room?"
-        message="All objects inside this room and their inventory lines are deleted as well."
+        title={tr("Delete room?")}
+        message={tr("All objects inside this room and their inventory lines are deleted as well.")}
       />
     </div>
   )

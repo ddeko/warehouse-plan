@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, MapPin, Package, Search, Warehouse } from 'lucide-react'
 import { useStore } from '../store'
 import { cx, fmtNum } from '../lib/utils'
+import { t as tr } from '../lib/i18n'
 
 type Hit =
   | { kind: 'room'; id: string; title: string; sub: string }
@@ -88,7 +89,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           <input
             ref={inputRef}
             className="flex-1 bg-transparent text-[14px] outline-none"
-            placeholder="Search rooms, objects, SKUs, barcodes…"
+            placeholder={tr("Search rooms, objects, SKUs, barcodes…")}
             value={q}
             onChange={(e) => { setQ(e.target.value); setCursor(0) }}
             onKeyDown={(e) => {
@@ -101,7 +102,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           <kbd className="rounded border hairline px-1 text-[10px] muted">Esc</kbd>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {!q && <p className="p-6 text-center text-[12px] muted">Type to search. Scan a barcode into this box to jump straight to the stock line.</p>}
+          {!q && <p className="p-6 text-center text-[12px] muted">{tr("Type to search. Scan a barcode into this box to jump straight to the stock line.")}</p>}
           {q && hits.length === 0 && <p className="p-6 text-center text-[12px] muted">No matches for “{q}”.</p>}
           {hits.map((h, i) => {
             const Icon = h.kind === 'room' ? Warehouse : h.kind === 'container' ? Box : Package

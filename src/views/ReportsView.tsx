@@ -6,6 +6,7 @@ import { Bar, Empty, SectionTitle, Stat } from '../components/ui'
 import { toCSV } from '../lib/csv'
 import { areaM2, cx, download, fmtMoney, fmtNum, volM3 } from '../lib/utils'
 import { usedFloorArea } from '../lib/geometry'
+import { t as tr, trf } from '../lib/i18n'
 
 type Report = 'abc' | 'capacity' | 'aging' | 'valuation' | 'zones'
 
@@ -129,7 +130,7 @@ export function ReportsView() {
         cumulative: (l.cumShare * 100).toFixed(2),
       }))
     } else if (report === 'aging') {
-      rows = aging.map((b) => ({ bucket: b.label, lines: b.lines, qty: b.qty, value: b.value.toFixed(2) }))
+      rows = aging.map((b) => ({ bucket: tr(b.label), lines: b.lines, qty: b.qty, value: b.value.toFixed(2) }))
     } else if (report === 'valuation') {
       rows = valuation.map(([cat, v]) => ({ category: cat, lines: v.lines, qty: v.qty, value: v.value.toFixed(2), weight_kg: v.weight.toFixed(2) }))
     } else if (report === 'zones') {
@@ -148,7 +149,7 @@ export function ReportsView() {
   }
 
   if (!items.length && !containers.length) {
-    return <Empty title="Nothing to report yet" hint="Create rooms, add storage objects and record stock — reports build automatically." />
+    return <Empty title={tr("Nothing to report yet")} hint={tr("Create rooms, add storage objects and record stock — reports build automatically.")} />
   }
 
   const active = REPORTS.find((r) => r.key === report)!
@@ -158,18 +159,18 @@ export function ReportsView() {
       <header className="border-b hairline px-5 py-3" style={{ background: 'var(--panel)' }}>
         <div className="flex flex-wrap items-center gap-2">
           <div>
-            <h1 className="text-[15px] font-semibold">Reports</h1>
-            <p className="text-[11.5px] muted">{active.blurb}</p>
+            <h1 className="text-[15px] font-semibold">{tr("Reports")}</h1>
+            <p className="text-[11.5px] muted">{tr(active.blurb)}</p>
           </div>
           <div className="ml-auto flex gap-1.5">
-            <button className="btn" onClick={exportCurrent}><Download size={13} /> Export CSV</button>
-            <button className="btn" onClick={() => window.print()}><Printer size={13} /> Print</button>
+            <button className="btn" onClick={exportCurrent}><Download size={13} />{tr("Export CSV")}</button>
+            <button className="btn" onClick={() => window.print()}><Printer size={13} />{tr("Print")}</button>
           </div>
         </div>
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           {REPORTS.map((r) => (
             <button key={r.key} className={cx('btn btn-sm', report === r.key && 'btn-active')} onClick={() => setReport(r.key)}>
-              {r.label}
+              {tr(r.label)}
             </button>
           ))}
         </div>
@@ -179,7 +180,7 @@ export function ReportsView() {
         {report === 'abc' && (
           <>
             <div className="mb-3 rounded-xl border hairline p-3 text-[11.5px] leading-relaxed muted panel-2">
-              <b className="text-[var(--text)]">What the class means.</b> Lines are ranked by total value
+              <b className="text-[var(--text)]">{tr("What the class means.")}</b> Lines are ranked by total value
               (qty × unit cost) and split by cumulative share, the classic 80/15/5 Pareto rule.
               {' '}<b className="text-[var(--text)]">A</b> is the small set of lines carrying most of your money —
               count these often and never run them out.
@@ -189,18 +190,21 @@ export function ReportsView() {
             </div>
             <div className="mb-4 grid gap-3 sm:grid-cols-3">
               {([
-                { k: 'A' as const, desc: 'Top 80% of value — tight control' },
-                { k: 'B' as const, desc: 'Next 15% — routine control' },
-                { k: 'C' as const, desc: 'Last 5% — minimal control' },
+                { k: 'A' as const, desc: tr('Top 80% of value — tight control') },
+                { k: 'B' as const, desc: tr('Next 15% — routine control') },
+                { k: 'C' as const, desc: tr('Last 5% — minimal control') },
               ]).map(({ k, desc }) => {
                 const rows = abc.filter((l) => l.klass === k)
                 const v = rows.reduce((n, r) => n + r.value, 0)
                 return (
                   <Stat
                     key={k}
-                    label={`Class ${k} · ${desc}`}
-                    value={`${rows.length} lines`}
-                    sub={`${fmtMoney(v, settings.currency)} · ${totalValue ? Math.round((v / totalValue) * 100) : 0}% of value`}
+                    label={`${tr('Class')} ${k} · ${desc}`}
+                    value={trf('{n} lines', { n: rows.length })}
+                    sub={trf('{money} · {pct}% of value', {
+                      money: fmtMoney(v, settings.currency),
+                      pct: totalValue ? Math.round((v / totalValue) * 100) : 0,
+                    })}
                     tone={k === 'A' ? 'good' : k === 'B' ? 'info' : 'default'}
                   />
                 )
@@ -209,7 +213,7 @@ export function ReportsView() {
             <div className="card overflow-x-auto">
               <table className="table">
                 <thead>
-                  <tr><th>Class</th><th>SKU</th><th>Item</th><th>Category</th><th className="num">Qty</th><th className="num">Value</th><th className="num">Share</th><th className="w-40">Cumulative</th></tr>
+                  <tr><th>{tr("Class")}</th><th>{tr("SKU")}</th><th>{tr("Item")}</th><th>{tr("Category")}</th><th className="num">{tr("Qty")}</th><th className="num">{tr("Value")}</th><th className="num">{tr("Share")}</th><th className="w-40">{tr("Cumulative")}</th></tr>
                 </thead>
                 <tbody>
                   {abc.slice(0, 200).map((l) => (
@@ -218,7 +222,7 @@ export function ReportsView() {
                         <span
                           className="chip"
                           style={{ color: l.klass === 'A' ? '#3fae8f' : l.klass === 'B' ? '#4d8fd6' : 'var(--muted)' }}
-                          title={l.klass === 'A' ? 'Top 80% of inventory value' : l.klass === 'B' ? 'Next 15% of value' : 'Last 5% of value'}
+                          title={l.klass === 'A' ? tr('Top 80% of inventory value') : l.klass === 'B' ? tr('Next 15% of value') : tr('Last 5% of value')}
                         >
                           {l.klass}
                         </span>
@@ -261,28 +265,28 @@ export function ReportsView() {
                   </div>
                   <div className="flex gap-5 text-[11px]">
                     <div className="w-28">
-                      <div className="mb-0.5 flex justify-between muted"><span>Floor</span><span>{Math.round(r.floorRatio * 100)}%</span></div>
+                      <div className="mb-0.5 flex justify-between muted"><span>{tr("Floor")}</span><span>{Math.round(r.floorRatio * 100)}%</span></div>
                       <Bar ratio={r.floorRatio} height={4} />
                     </div>
                     <div className="w-28">
-                      <div className="mb-0.5 flex justify-between muted"><span>Slots</span><span>{r.cap ? Math.round((r.slots / r.cap) * 100) : 0}%</span></div>
+                      <div className="mb-0.5 flex justify-between muted"><span>{tr("Slots")}</span><span>{r.cap ? Math.round((r.slots / r.cap) * 100) : 0}%</span></div>
                       <Bar ratio={r.cap ? r.slots / r.cap : 0} height={4} />
                     </div>
                     <div className="text-right">
-                      <p className="muted">Value</p>
+                      <p className="muted">{tr("Value")}</p>
                       <p className="font-semibold tabular-nums">{fmtMoney(r.value, settings.currency)}</p>
                     </div>
                   </div>
                 </div>
                 <table className="table">
                   <thead>
-                    <tr><th>Object</th><th>Type</th><th>Size (cm)</th><th className="num">Footprint</th><th className="num">Slots</th><th className="w-32">Fill</th><th className="num">Weight</th><th className="num">Value</th></tr>
+                    <tr><th>{tr("Object")}</th><th>{tr("Type")}</th><th>{tr("Size (cm)")}</th><th className="num">{tr("Footprint")}</th><th className="num">{tr("Slots")}</th><th className="w-32">{tr("Fill")}</th><th className="num">{tr("Weight")}</th><th className="num">{tr("Value")}</th></tr>
                   </thead>
                   <tbody>
                     {r.rows.map(({ c, st }) => (
                       <tr key={c.id}>
                         <td><span className="mono">{c.code}</span> <span className="muted">{c.name}</span></td>
-                        <td className="muted">{containerMeta(c.type).label}</td>
+                        <td className="muted">{tr(containerMeta(c.type).label)}</td>
                         <td className="mono muted">{c.w}×{c.d}×{c.h}</td>
                         <td className="num tabular-nums muted">{((c.w * c.d) / 10000).toFixed(2)} m²</td>
                         <td className="num tabular-nums">{st.usedSlots}/{c.capacity}</td>
@@ -301,11 +305,11 @@ export function ReportsView() {
         {report === 'aging' && (
           <div className="card overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Age bucket</th><th className="num">Lines</th><th className="num">Units</th><th className="num">Value</th><th className="w-52">Share of value</th></tr></thead>
+              <thead><tr><th>{tr("Age bucket")}</th><th className="num">{tr("Lines")}</th><th className="num">{tr("Units")}</th><th className="num">{tr("Value")}</th><th className="w-52">{tr("Share of value")}</th></tr></thead>
               <tbody>
                 {aging.map((b) => (
                   <tr key={b.label}>
-                    <td className="font-medium">{b.label}</td>
+                    <td className="font-medium">{tr(b.label)}</td>
                     <td className="num tabular-nums">{fmtNum(b.lines)}</td>
                     <td className="num tabular-nums">{fmtNum(b.qty)}</td>
                     <td className="num tabular-nums">{fmtMoney(b.value, settings.currency)}</td>
@@ -320,7 +324,7 @@ export function ReportsView() {
         {report === 'valuation' && (
           <div className="card overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Category</th><th className="num">Lines</th><th className="num">Units</th><th className="num">Weight</th><th className="num">Value</th><th className="w-52">Share</th></tr></thead>
+              <thead><tr><th>{tr("Category")}</th><th className="num">{tr("Lines")}</th><th className="num">{tr("Units")}</th><th className="num">{tr("Weight")}</th><th className="num">{tr("Value")}</th><th className="w-52">{tr("Share")}</th></tr></thead>
               <tbody>
                 {valuation.map(([cat, v]) => (
                   <tr key={cat}>
@@ -335,7 +339,7 @@ export function ReportsView() {
               </tbody>
               <tfoot>
                 <tr>
-                  <td className="font-semibold">Total</td>
+                  <td className="font-semibold">{tr("Total")}</td>
                   <td className="num tabular-nums font-semibold">{fmtNum(items.length)}</td>
                   <td className="num tabular-nums font-semibold">{fmtNum(items.reduce((n, i) => n + i.qty, 0))}</td>
                   <td className="num tabular-nums font-semibold">{fmtNum(lines.reduce((n, l) => n + l.weight, 0), 1)} kg</td>
@@ -350,7 +354,7 @@ export function ReportsView() {
         {report === 'zones' && (
           <div className="card overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Zone</th><th className="num">Rooms</th><th className="num">Objects</th><th className="num">Slots used</th><th className="w-40">Occupancy</th><th className="num">Value</th></tr></thead>
+              <thead><tr><th>{tr("Zone")}</th><th className="num">{tr("Rooms")}</th><th className="num">{tr("Objects")}</th><th className="num">{tr("Slots used")}</th><th className="w-40">{tr("Occupancy")}</th><th className="num">{tr("Value")}</th></tr></thead>
               <tbody>
                 {zones.map(([z, v]) => (
                   <tr key={z}>

@@ -288,10 +288,13 @@ export function buildSeed(): AppData {
     containers,
     items,
     movements,
+    // Present only to satisfy `AppData`; `loadSample` keeps the user's own
+    // settings and never reads these, so loading the demo does not silently
+    // reset someone's language, theme or currency.
     settings: {
       units: 'cm', snapEnabled: true, showGrid: true, showWalls: true, showLabels: false,
       showFillBadges: true, collisionEnabled: true, wallClearance: 0, operator: 'operator',
-      currency: 'USD', expiryWarnDays: 30, theme: 'light',
+      currency: 'USD', expiryWarnDays: 30, theme: 'light', language: 'en',
     },
   }
 }

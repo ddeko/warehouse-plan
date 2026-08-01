@@ -10,6 +10,7 @@ import { LabelSheet } from '../components/LabelSheet'
 import { Empty, Select } from '../components/ui'
 import { toCSV } from '../lib/csv'
 import { cx, daysUntil, download, fmtDate, fmtMoney, fmtNum } from '../lib/utils'
+import { t as tr, trf } from '../lib/i18n'
 
 type SortKey = 'name' | 'sku' | 'qty' | 'value' | 'expiry' | 'location' | 'category' | 'updated'
 
@@ -147,10 +148,15 @@ export function InventoryView() {
       <header className="border-b hairline px-3 py-3 sm:px-5" style={{ background: 'var(--panel)' }}>
         <div className="flex flex-wrap items-center gap-2">
           <div>
-            <h1 className="text-[15px] font-semibold">Inventory</h1>
+            <h1 className="text-[15px] font-semibold">{tr("Inventory")}</h1>
             <p className="text-[11.5px] muted">
-              {fmtNum(filtered.length)} of {fmtNum(items.length)} lines · {fmtNum(totals.qty)} units ·
-              {' '}{fmtMoney(totals.value, settings.currency)} · {fmtNum(totals.weight, 1)} kg
+              {trf('{shown} of {all} lines · {qty} units · {value} · {kg} kg', {
+                shown: fmtNum(filtered.length),
+                all: fmtNum(items.length),
+                qty: fmtNum(totals.qty),
+                value: fmtMoney(totals.value, settings.currency),
+                kg: fmtNum(totals.weight, 1),
+              })}
             </p>
           </div>
           <div className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto">
@@ -158,7 +164,7 @@ export function InventoryView() {
               <ScanLine size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 muted" />
               <input
                 className="input w-full pl-7 sm:w-64"
-                placeholder="Search or scan barcode…"
+                placeholder={tr("Search or scan barcode…")}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
@@ -171,8 +177,7 @@ export function InventoryView() {
               <Printer size={13} /> Labels{selectedItems.length ? ` (${selectedItems.length})` : ''}
             </button>
             <button className="btn btn-primary" onClick={() => { setEditItem(null); setFormOpen(true) }} disabled={!containers.length}>
-              <PackagePlus size={13} /> New item
-            </button>
+              <PackagePlus size={13} />{tr("New item")}</button>
           </div>
         </div>
 
@@ -182,42 +187,41 @@ export function InventoryView() {
             className="w-[150px]"
             value={roomFilter}
             onChange={(v) => { setRoomFilter(v); setContainerFilter('') }}
-            options={[{ value: '', label: 'All rooms' }, ...rooms.map((r) => ({ value: r.id, label: `${r.code} — ${r.name}` }))]}
-            ariaLabel="Filter by room"
+            options={[{ value: '', label: tr('All rooms') }, ...rooms.map((r) => ({ value: r.id, label: `${r.code} — ${r.name}` }))]}
+            ariaLabel={tr("Filter by room")}
           />
           <Select
             className="w-[160px]"
             value={containerFilter}
             onChange={setContainerFilter}
             options={[
-              { value: '', label: 'All containers' },
+              { value: '', label: tr('All containers') },
               ...containers.filter((c) => !roomFilter || c.roomId === roomFilter).map((c) => ({ value: c.id, label: `${c.code} · ${c.name}` })),
             ]}
-            ariaLabel="Filter by container"
+            ariaLabel={tr("Filter by container")}
           />
           <Select
             className="w-[140px]"
             value={categoryFilter}
             onChange={setCategoryFilter}
-            options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: c, label: c }))]}
-            ariaLabel="Filter by category"
+            options={[{ value: '', label: tr('All categories') }, ...categories.map((c) => ({ value: c, label: c }))]}
+            ariaLabel={tr("Filter by category")}
           />
           <Select
             className="w-[130px]"
             value={statusFilter}
             onChange={(v) => setStatusFilter(v as ItemStatus | '')}
-            options={[{ value: '', label: 'Any status' }, ...ITEM_STATUSES.map((s) => ({ value: s.value, label: s.label }))]}
-            ariaLabel="Filter by status"
+            options={[{ value: '', label: tr('Any status') }, ...ITEM_STATUSES.map((s) => ({ value: s.value, label: tr(s.label) }))]}
+            ariaLabel={tr("Filter by status")}
           />
           {(['low', 'expiring', 'expired'] as const).map((f) => (
             <button key={f} className={cx('btn btn-sm', flag === f && 'btn-active')} onClick={() => setFlag(flag === f ? '' : f)}>
-              {f === 'low' ? 'Low stock' : f === 'expiring' ? `Expiring ≤${settings.expiryWarnDays}d` : 'Expired'}
+              {f === 'low' ? tr('Low stock') : f === 'expiring' ? trf('Expiring ≤{d}d', { d: settings.expiryWarnDays }) : tr('Expired')}
             </button>
           ))}
           {activeFilters > 0 && (
             <button className="btn btn-sm" onClick={() => { setRoomFilter(''); setContainerFilter(''); setCategoryFilter(''); setStatusFilter(''); setFlag('') }}>
-              <X size={11} /> Clear
-            </button>
+              <X size={11} />{tr("Clear")}</button>
           )}
         </div>
       </header>
@@ -249,14 +253,14 @@ export function InventoryView() {
                     onChange={(e) => setSelection(e.target.checked ? new Set(filtered.map((i) => i.id)) : new Set())}
                   />
                 </th>
-                {th('name', 'Item')}
-                {th('sku', 'SKU / Barcode')}
-                {th('category', 'Category')}
-                <th>Status</th>
-                {th('qty', 'Qty', 'num')}
-                {th('value', 'Value', 'num')}
-                {th('location', 'Location')}
-                {th('expiry', 'Expiry')}
+                {th('name', tr('Item'))}
+                {th('sku', tr('SKU / Barcode'))}
+                {th('category', tr('Category'))}
+                <th>{tr("Status")}</th>
+                {th('qty', tr('Qty'), 'num')}
+                {th('value', tr('Value'), 'num')}
+                {th('location', tr('Location'))}
+                {th('expiry', tr('Expiry'))}
                 <th className="w-8" />
               </tr>
             </thead>
@@ -294,7 +298,7 @@ export function InventoryView() {
                           borderColor: status ? `${status.color}55` : 'var(--line)',
                         }}
                       >
-                        {status?.label ?? i.status}
+                        {status ? tr(status.label) : i.status}
                       </span>
                     </td>
                     <td className={cx('num tabular-nums', low && 'text-amber-400')}>
@@ -302,13 +306,13 @@ export function InventoryView() {
                     </td>
                     <td className="num tabular-nums muted">{fmtMoney((i.unitCost ?? 0) * i.qty, settings.currency)}</td>
                     <td className="mono">
-                      <button className="hover:underline" onClick={() => jump(i)} title="Show in layout">{loc.label}</button>
+                      <button className="hover:underline" onClick={() => jump(i)} title={tr("Show in layout")}>{loc.label}</button>
                     </td>
                     <td className={cx('mono', d !== null && d < 0 ? 'text-red-400' : d !== null && d <= settings.expiryWarnDays ? 'text-amber-400' : 'muted')}>
                       {i.expiryAt ? `${fmtDate(i.expiryAt)}${d !== null ? ` (${d}d)` : ''}` : '—'}
                     </td>
                     <td>
-                      <button className="btn btn-ghost btn-sm" onClick={() => jump(i)} title="Locate"><MapPin size={12} /></button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => jump(i)} title={tr("Locate")}><MapPin size={12} /></button>
                     </td>
                   </tr>
                 )

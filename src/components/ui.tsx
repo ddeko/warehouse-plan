@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown, X } from 'lucide-react'
 import { cx } from '../lib/utils'
+import { t as tr } from '../lib/i18n'
 
 /* ------------------------------------------------------------------ select */
 
@@ -208,7 +209,7 @@ export function Select<T extends string>({
               </button>
             ),
           )}
-          {!options.length && <div className="px-2 py-2 text-[12px] muted">Nothing to choose from</div>}
+          {!options.length && <div className="px-2 py-2 text-[12px] muted">{tr("Nothing to choose from")}</div>}
         </div>,
         document.body,
       )}
@@ -383,7 +384,7 @@ export function Modal({
             <h2 className="text-sm font-semibold">{title}</h2>
             {subtitle && <p className="text-[11px] muted">{subtitle}</p>}
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close"><X size={15} /></button>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label={tr("Close")}><X size={15} /></button>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">{children}</div>
         {footer && <footer className="flex items-center justify-end gap-2 border-t hairline px-4 py-3">{footer}</footer>}
@@ -411,7 +412,7 @@ export function Confirm({
       width="max-w-sm"
       footer={
         <>
-          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn" onClick={onClose}>{tr("Cancel")}</button>
           <button
             className={cx('btn', danger ? 'btn-danger' : 'btn-primary')}
             onClick={() => { onConfirm(); onClose() }}

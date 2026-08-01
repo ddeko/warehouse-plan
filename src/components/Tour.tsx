@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, MessageSquarePlus, Sparkles } from 'lucide-react'
 import { useStore, type View } from '../store'
+import { t as tr } from '../lib/i18n'
 
 /**
  * First-run walkthrough: a speech bubble that hops from feature to feature.
@@ -342,7 +343,7 @@ export function Tour({ open, onClose, onFeedback }: {
   const anchored = Boolean(spot?.rect)
 
   return (
-    <div className="no-print fixed inset-0 z-[70] fade-in" role="dialog" aria-label="Guided tour">
+    <div className="no-print fixed inset-0 z-[70] fade-in" role="dialog" aria-label={tr("Guided tour")}>
       {/*
         Blocks clicks on the app: the tour drives the view itself, and a stray
         click behind the bubble would move the ground under it.
@@ -419,11 +420,11 @@ export function Tour({ open, onClose, onFeedback }: {
             {last ? <MessageSquarePlus size={13} style={{ color: 'var(--accent)' }} />
               : <Sparkles size={13} style={{ color: 'var(--accent)' }} />}
           </span>
-          <h2 className="text-[13.5px] font-semibold">{step.title}</h2>
+          <h2 className="text-[13.5px] font-semibold">{tr(step.title)}</h2>
           <span className="ml-auto shrink-0 text-[10.5px] tabular-nums muted">{i + 1} / {STEPS.length}</span>
         </div>
 
-        <p className="text-[12px] leading-relaxed muted">{step.body}</p>
+        <p className="text-[12px] leading-relaxed muted">{tr(step.body)}</p>
 
         {/*
           Wraps, because the last step's "Send feedback" is twice the width of
@@ -455,12 +456,12 @@ export function Tour({ open, onClose, onFeedback }: {
               {last ? 'No thanks' : 'Skip'}
             </button>
             {i > 0 && (
-              <button className="btn btn-sm btn-icon" onClick={() => setI(i - 1)} aria-label="Previous">
+              <button className="btn btn-sm btn-icon" onClick={() => setI(i - 1)} aria-label={tr("Previous")}>
                 <ChevronLeft size={14} />
               </button>
             )}
             <button className="btn btn-sm btn-primary" onClick={next} autoFocus>
-              {last ? <><MessageSquarePlus size={13} /> Send feedback</> : <>Next <ChevronRight size={13} /></>}
+              {last ? <><MessageSquarePlus size={13} />{tr("Send feedback")}</> : <>{tr("Next")}<ChevronRight size={13} /></>}
             </button>
           </div>
         </div>

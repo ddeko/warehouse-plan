@@ -6,6 +6,7 @@ import { useStore } from '../store'
 import { Confirm, Modal, NumberField, Select, SelectField, TextField, Field } from './ui'
 import { Barcode } from './Barcode'
 import { generateBarcode, todayISO } from '../lib/utils'
+import { t as tr, trf } from '../lib/i18n'
 
 interface Props {
   open: boolean
@@ -88,8 +89,8 @@ export function ItemForm({ open, onClose, item, containerId }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title={item ? `Edit ${item.sku}` : 'New inventory line'}
-      subtitle={item ? item.name : 'Add stock to a container'}
+      title={item ? trf('Edit {sku}', { sku: item.sku }) : tr('New inventory line')}
+      subtitle={item ? item.name : tr('Add stock to a container')}
       width="max-w-3xl"
       footer={
         <>
@@ -97,88 +98,87 @@ export function ItemForm({ open, onClose, item, containerId }: Props) {
             // Confirmed, like every other destructive action in the app. It
             // sits one button away from Cancel and there is no undo.
             <button className="btn btn-danger mr-auto" onClick={() => setConfirmDel(true)}>
-              <Trash2 size={13} /> Delete line
-            </button>
+              <Trash2 size={13} />{tr("Delete line")}</button>
           )}
-          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn" onClick={onClose}>{tr("Cancel")}</button>
           <button
             className="btn btn-primary"
             onClick={save}
             disabled={!draft.name?.trim() || !(draft.containerId || containerId)}
           >
-            {item ? 'Save changes' : 'Add item'}
+            {item ? tr('Save changes') : tr('Add item')}
           </button>
         </>
       }
     >
       <div className="grid gap-3 md:grid-cols-3">
-        <TextField className="md:col-span-2" label="Item name" value={draft.name ?? ''} onChange={(v) => set('name', v)} placeholder="e.g. Bearing 6204-2RS" />
+        <TextField className="md:col-span-2" label={tr("Item name")} value={draft.name ?? ''} onChange={(v) => set('name', v)} placeholder={tr("e.g. Bearing 6204-2RS")} />
         <SelectField
-          label="Category"
+          label={tr("Category")}
           value={draft.category ?? 'General'}
           onChange={(v) => set('category', v)}
-          options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+          options={CATEGORIES.map((c) => ({ value: c, label: tr(c) }))}
         />
 
-        <TextField label="SKU / Part no." mono value={draft.sku ?? ''} onChange={(v) => set('sku', v)} placeholder="AUTO" />
-        <Field label="Barcode">
+        <TextField label={tr("SKU / Part no.")} mono value={draft.sku ?? ''} onChange={(v) => set('sku', v)} placeholder="AUTO" />
+        <Field label={tr("Barcode")}>
           <div className="flex gap-1.5">
             <input className="input mono" value={draft.barcode ?? ''} onChange={(e) => set('barcode', e.target.value)} />
-            <button className="btn" title="Generate new barcode" onClick={() => set('barcode', generateBarcode())}>
+            <button className="btn" title={tr("Generate new barcode")} onClick={() => set('barcode', generateBarcode())}>
               <RefreshCw size={13} />
             </button>
           </div>
         </Field>
-        <Field label="Preview">
+        <Field label={tr("Preview")}>
           <div className="flex h-[34px] items-center justify-center overflow-hidden rounded-lg border hairline bg-white px-1">
             {draft.barcode ? (
               <Barcode value={draft.barcode} height={22} width={1} displayValue={false} />
             ) : (
-              <span className="text-[11px] text-slate-400">no barcode</span>
+              <span className="text-[11px] text-slate-400">{tr('no barcode')}</span>
             )}
           </div>
         </Field>
 
-        <NumberField label="Quantity" value={draft.qty ?? 0} onChange={(v) => set('qty', v)} min={0} step={1} />
-        <SelectField label="Unit of measure" value={(draft.uom ?? 'pcs') as Uom} onChange={(v) => set('uom', v)} options={UOMS.map((u) => ({ value: u, label: u }))} />
-        <NumberField label="Slots used" value={draft.slots ?? 1} onChange={(v) => set('slots', Math.max(1, Math.round(v)))} min={1} hint="How much container capacity this line consumes" />
+        <NumberField label={tr("Quantity")} value={draft.qty ?? 0} onChange={(v) => set('qty', v)} min={0} step={1} />
+        <SelectField label={tr("Unit of measure")} value={(draft.uom ?? 'pcs') as Uom} onChange={(v) => set('uom', v)} options={UOMS.map((u) => ({ value: u, label: u }))} />
+        <NumberField label={tr("Slots used")} value={draft.slots ?? 1} onChange={(v) => set('slots', Math.max(1, Math.round(v)))} min={1} hint={tr("How much container capacity this line consumes")} />
 
-        <NumberField label="Unit weight" value={draft.unitWeightKg ?? 0} onChange={(v) => set('unitWeightKg', v)} min={0} step={0.01} suffix="kg" hint={`Line weight ${totalWeight.toFixed(2)} kg`} />
-        <NumberField label="Unit cost" value={draft.unitCost ?? 0} onChange={(v) => set('unitCost', v)} min={0} step={0.01} suffix={currency} hint={`Line value ${totalValue.toFixed(2)} ${currency}`} />
-        <NumberField label="Reorder point" value={draft.minQty ?? 0} onChange={(v) => set('minQty', v)} min={0} hint="Low-stock alert threshold" />
+        <NumberField label={tr("Unit weight")} value={draft.unitWeightKg ?? 0} onChange={(v) => set('unitWeightKg', v)} min={0} step={0.01} suffix="kg" hint={trf('Line weight {n} kg', { n: totalWeight.toFixed(2) })} />
+        <NumberField label={tr("Unit cost")} value={draft.unitCost ?? 0} onChange={(v) => set('unitCost', v)} min={0} step={0.01} suffix={currency} hint={trf('Line value {n} {cur}', { n: totalValue.toFixed(2), cur: currency })} />
+        <NumberField label={tr("Reorder point")} value={draft.minQty ?? 0} onChange={(v) => set('minQty', v)} min={0} hint={tr("Low-stock alert threshold")} />
 
         <SelectField
-          label="Status"
+          label={tr("Status")}
           value={(draft.status ?? 'in_stock') as ItemStatus}
           onChange={(v) => set('status', v)}
-          options={ITEM_STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+          options={ITEM_STATUSES.map((s) => ({ value: s.value, label: tr(s.label) }))}
         />
-        <TextField label="Lot / Batch" value={draft.lot ?? ''} onChange={(v) => set('lot', v)} mono />
-        <TextField label="Serial no." value={draft.serial ?? ''} onChange={(v) => set('serial', v)} mono />
+        <TextField label={tr("Lot / Batch")} value={draft.lot ?? ''} onChange={(v) => set('lot', v)} mono />
+        <TextField label={tr("Serial no.")} value={draft.serial ?? ''} onChange={(v) => set('serial', v)} mono />
 
-        <Field label="Received date">
+        <Field label={tr("Received date")}>
           <input type="date" className="input" value={draft.receivedAt ?? ''} onChange={(e) => set('receivedAt', e.target.value)} />
         </Field>
-        <Field label="Expiry date" >
+        <Field label={tr("Expiry date")} >
           <input type="date" className="input" value={draft.expiryAt ?? ''} onChange={(e) => set('expiryAt', e.target.value)} />
         </Field>
-        <TextField label="Supplier" value={draft.supplier ?? ''} onChange={(v) => set('supplier', v)} />
+        <TextField label={tr("Supplier")} value={draft.supplier ?? ''} onChange={(v) => set('supplier', v)} />
 
-        <Field label="Location" className="md:col-span-2">
+        <Field label={tr("Location")} className="md:col-span-2">
           <Select
             value={draft.containerId ?? containerId ?? ''}
             onChange={(v) => set('containerId', v)}
-            placeholder="Select container…"
-            ariaLabel="Location"
+            placeholder={tr("Select container…")}
+            ariaLabel={tr("Location")}
             options={containerOptions.flatMap(({ room, list }) =>
               list.map((c) => ({ value: c.id, label: `${c.code} · ${c.name}`, group: `${room.code} — ${room.name}` })),
             )}
           />
         </Field>
-        <TextField label="Sub-location / bin" value={draft.slot ?? ''} onChange={(v) => set('slot', v)} placeholder="L2-B3" mono />
+        <TextField label={tr("Sub-location / bin")} value={draft.slot ?? ''} onChange={(v) => set('slot', v)} placeholder="L2-B3" mono />
 
-        <TextField className="md:col-span-2" label="Tags (comma separated)" value={tagText} onChange={setTagText} placeholder="fast-mover, fragile" />
-        <Field label="Notes" className="md:col-span-3">
+        <TextField className="md:col-span-2" label={tr("Tags (comma separated)")} value={tagText} onChange={setTagText} placeholder={tr("fast-mover, fragile")} />
+        <Field label={tr("Notes")} className="md:col-span-3">
           <textarea className="textarea" value={draft.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
         </Field>
       </div>
@@ -188,9 +188,9 @@ export function ItemForm({ open, onClose, item, containerId }: Props) {
           open={confirmDel}
           onClose={() => setConfirmDel(false)}
           onConfirm={() => { removeItem(item.id); onClose() }}
-          title="Delete this stock line?"
+          title={tr("Delete this stock line?")}
           message={`${item.sku} — ${item.name}. The quantity is written off and recorded in the movement history.`}
-          confirmLabel="Delete line"
+          confirmLabel={tr("Delete line")}
         />
       )}
     </Modal>
